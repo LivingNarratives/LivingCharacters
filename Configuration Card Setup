@@ -1,0 +1,166 @@
+# Configuration Card Setup
+
+Living Characters is controlled through a Story Card named:
+
+LIVING CHARACTERS CONFIG
+Create a new Story Card using that exact name.
+
+---
+
+## Basic Example
+
+PROTAGONIST_NAME: Frank
+
+CHARACTERS:
+Alice
+Bob
+Charlie
+
+PRESSURES:
+friendship
+jealousy
+rivalry
+trust
+curiosity
+
+LIFE_CARD_INTERVAL: 15
+
+MAX_ACTIVE_CARDS: 2
+
+SCENE_RELEVANCE: off
+
+---
+
+## PROTAGONIST_NAME
+
+The player's character name.
+
+Example:
+PROTAGONIST_NAME: Frank
+
+
+This allows NPCs to form Life Cards involving the protagonist.
+
+---
+
+## CHARACTERS
+
+A list of NPCs that can participate in the social simulation.
+
+One character per line.
+
+Example:
+CHARACTERS:
+Alice
+Bob
+Charlie
+
+
+Only include characters you want participating in Living Characters.
+
+---
+
+## PRESSURES
+
+Pressures are the social or emotional forces that drive Life Cards.
+
+Example:
+PRESSURES:
+friendship
+jealousy
+rivalry
+trust
+curiosity
+
+
+You can use any pressures you want.
+Examples:
+attraction
+friendship
+jealousy
+rivalry
+trust
+curiosity
+anger
+protectiveness
+avoidance
+tension
+guilt
+envy
+betrayal
+yelling
+seduction
+idiot
+narcissism
+food_fight
+fist_fight
+```
+
+Living Characters does not define pressure behavior. The AI interprets the pressure naturally within the story.
+
+---
+
+## LIFE_CARD_INTERVAL
+
+Controls how often the system attempts to create a new Life Card.
+
+Examples:
+20 = Quiet
+15 = Balanced (recommended)
+10 = Busy
+5 = Chaos
+
+
+Example:
+LIFE_CARD_INTERVAL: 15
+
+
+### Recommendation
+For most models:
+LIFE_CARD_INTERVAL: 15
+Balanced pacing gives active storylines time to develop before introducing new social pressures.
+Dynamic Large can generally support faster intervals more reliably than other models.
+
+---
+
+## MAX_ACTIVE_CARDS
+
+Controls the maximum number of active Life Cards allowed at one time.
+
+Example:
+MAX_ACTIVE_CARDS: 2
+
+
+### Recommendation
+
+Dynamic Large:
+MAX_ACTIVE_CARDS: 2
+
+Hearthfire:
+MAX_ACTIVE_CARDS: 1
+Hearthfire tends to focus heavily on a single active storyline and may ignore additional active Life Cards.
+
+---
+
+## SCENE_RELEVANCE
+
+Controls whether active Life Cards must be connected to characters currently present in the scene.
+
+### Off
+SCENE_RELEVANCE: off
+
+Allows off-screen social development and world-state progression.
+
+Recommended for:
+Dynamic Large
+
+### Strict
+SCENE_RELEVANCE: strict
+Requires at least one side of a Life Card relationship to be present in the current scene.
+
+Recommended for:
+Hearthfire
+Gemma
+Most other models
+
+This generally improves focus and reduces context noise.
