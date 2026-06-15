@@ -1,14 +1,16 @@
 # Configuration Card Setup
 
-Living Characters is controlled through a Story Card named:
+Living Characters is controlled through a **Story Card** named exactly:
 
-LIVING CHARACTERS CONFIG
-Create a new Story Card using that exact name.
+**LIVING CHARACTERS CONFIG**
+
+Create a new Story Card with that name in your AI Dungeon game.
 
 ---
 
-## Basic Example
+## Quick Start Example
 
+```
 PROTAGONIST_NAME: Frank
 
 CHARACTERS:
@@ -28,139 +30,101 @@ LIFE_CARD_INTERVAL: 15
 MAX_ACTIVE_CARDS: 2
 
 SCENE_RELEVANCE: off
+```
 
 ---
 
 ## PROTAGONIST_NAME
 
-The player's character name.
+The name of the player’s character.
 
-Example:
-PROTAGONIST_NAME: Frank
+This lets NPCs form relationships and Life Cards that involve the protagonist.
 
-
-This allows NPCs to form Life Cards involving the protagonist.
+**Example:**
+`PROTAGONIST_NAME: Frank`
 
 ---
 
 ## CHARACTERS
 
-A list of NPCs that can participate in the social simulation.
+A list of NPCs that will participate in the social simulation.
 
-One character per line.
+- One character per line
+- Only include characters you want in the Living Characters system
 
-Example:
+**Example:**
+```
 CHARACTERS:
 Alice
 Bob
 Charlie
-
-
-Only include characters you want participating in Living Characters.
+```
 
 ---
 
 ## PRESSURES
 
-Pressures are the social or emotional forces that drive Life Cards.
+Pressures are the social and emotional forces that drive Life Cards and drama.
 
-Example:
+You can use any pressures you like. The AI interprets them naturally in the story.
+
+**Common examples:**
+- friendship, trust, curiosity, protectiveness
+- jealousy, rivalry, attraction, seduction, teasing
+- anger, betrayal, guilt, envy, avoidance
+
+**Example:**
+```
 PRESSURES:
 friendship
 jealousy
 rivalry
 trust
 curiosity
-
-
-You can use any pressures you want.
-Examples:
-attraction
-friendship
-jealousy
-rivalry
-trust
-curiosity
-anger
-protectiveness
-avoidance
-tension
-guilt
-envy
-betrayal
-yelling
-seduction
-idiot
-narcissism
-food_fight
-fist_fight
 ```
-
-Living Characters does not define pressure behavior. The AI interprets the pressure naturally within the story.
 
 ---
 
 ## LIFE_CARD_INTERVAL
 
-Controls how often the system attempts to create a new Life Card.
+How often the system tries to create new Life Cards.
 
-Examples:
-20 = Quiet
-15 = Balanced (recommended)
-10 = Busy
-5 = Chaos
+**Recommended values:**
+- `20` = Quiet / slower pacing
+- `15` = Balanced (recommended for most models)
+- `10` = Busy
+- `5` = High chaos
 
-
-Example:
-LIFE_CARD_INTERVAL: 15
-
-
-### Recommendation
-For most models:
-LIFE_CARD_INTERVAL: 15
-Balanced pacing gives active storylines time to develop before introducing new social pressures.
-Dynamic Large can generally support faster intervals more reliably than other models.
+**Example:**
+`LIFE_CARD_INTERVAL: 15`
 
 ---
 
 ## MAX_ACTIVE_CARDS
 
-Controls the maximum number of active Life Cards allowed at one time.
+Maximum number of active Life Cards at once.
 
-Example:
-MAX_ACTIVE_CARDS: 2
+**Recommendations by model:**
+- Dynamic Large: `2`
+- Hearthfire: `1` (Hearthfire focuses better on fewer active threads)
 
-
-### Recommendation
-
-Dynamic Large:
-MAX_ACTIVE_CARDS: 2
-
-Hearthfire:
-MAX_ACTIVE_CARDS: 1
-Hearthfire tends to focus heavily on a single active storyline and may ignore additional active Life Cards.
+**Example:**
+`MAX_ACTIVE_CARDS: 2`
 
 ---
 
 ## SCENE_RELEVANCE
 
-Controls whether active Life Cards must be connected to characters currently present in the scene.
+Controls whether Life Cards must involve characters currently in the scene.
 
-### Off
-SCENE_RELEVANCE: off
+### Off (Recommended for most models)
+`SCENE_RELEVANCE: off`
 
-Allows off-screen social development and world-state progression.
-
-Recommended for:
-Dynamic Large
+Allows off-screen social development and world progression.
 
 ### Strict
-SCENE_RELEVANCE: strict
-Requires at least one side of a Life Card relationship to be present in the current scene.
+`SCENE_RELEVANCE: strict`
 
-Recommended for:
-Hearthfire
-Gemma
-Most other models
+Requires at least one character from the Life Card to be present in the current scene.
 
-This generally improves focus and reduces context noise.
+Better for Hearthfire, Gemma, and models that benefit from tighter focus.
