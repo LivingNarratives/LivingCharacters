@@ -1,274 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pressure Presets — Living Characters</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
-
-body {
-  background: #1a0022;
-  color: #fff;
-  font-family: 'Inter', system-ui, sans-serif;
-  margin: 0;
-  padding: 0;
-  line-height: 1.6;
-}
-
-.container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 40px 20px;
-}
-
-.hero {
-  text-align: center;
-  margin-bottom: 60px;
-}
-
-h1 {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 3.5rem;
-  margin: 10px 0;
-  background: linear-gradient(90deg, #ff00ff, #00ffff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.tagline {
-  font-size: 1.5rem;
-  color: #00ffff;
-}
-
-.description {
-  font-size: 1.15rem;
-  color: #ccc;
-  max-width: 700px;
-  margin: 20px auto;
-}
-
-.section {
-  margin-bottom: 60px;
-}
-
-.section-title {
-  font-size: 1.8rem;
-  color: #ff00ff;
-  margin-bottom: 25px;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.chip {
-  background: #2a0033;
-  border: 2px solid #ff00ff;
-  color: #ff00ff;
-  padding: 10px 18px;
-  border-radius: 9999px;
-  font-weight: 600;
-}
-
-.mode {
-  background: #2a0033;
-  border-radius: 20px;
-  padding: 30px;
-  margin-bottom: 25px;
-  border: 1px solid #ffffff22;
-}
-
-.mode-header {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 15px;
-}
-
-.mode-title {
-  font-size: 1.7rem;
-}
-
-.scene {
-  background: #1a0022;
-  padding: 20px;
-  border-radius: 12px;
-  margin-top: 20px;
-  font-style: italic;
-  color: #ddd;
-}
-
-/* Different colors per mode */
-.drama { border-color: #ff7b00; }
-.drama .mode-title { color: #ff7b00; }
-.drama .chip { border-color: #ff7b00; color: #ff7b00; }
-
-.romance { border-color: #ff69b4; }
-.romance .mode-title { color: #ff69b4; }
-.romance .chip { border-color: #ff69b4; color: #ff69b4; }
-
-.chaos { border-color: #a020f0; }
-.chaos .mode-title { color: #a020f0; }
-.chaos .chip { border-color: #a020f0; color: #a020f0; }
-
-.comedy { border-color: #ffd700; }
-.comedy .mode-title { color: #ffd700; }
-.comedy .chip { border-color: #ffd700; color: #ffd700; }
-
-.psych { border-color: #32cd32; }
-.psych .mode-title { color: #32cd32; }
-.psych .chip { border-color: #32cd32; color: #32cd32; }
-
-.survival { border-color: #ff4500; }
-.survival .mode-title { color: #ff4500; }
-.survival .chip { border-color: #ff4500; color: #ff4500; }
-
-footer {
-  text-align: center;
-  margin-top: 80px;
-  opacity: 0.7;
-}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pressure Presets — Living Characters</title>
+  <meta name="description" content="Pressure presets for Living Characters. Pick a flavor of chaos." />
+  <style>
+    :root{--bg:#070712;--text:#f7f2ff;--muted:#bdb4d4;--line:rgba(255,255,255,.12);--card:rgba(13,14,31,.68);--magenta:#ff16d8;--hotpink:#ff2aa3;--cyan:#12f7ff;--violet:#9b20ff;--gold:#ffd21f;--lime:#47ff3f;--tomato:#ff4f3f;--orange:#ff7a1a}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 15% 10%,rgba(255,22,216,.22),transparent 32%),radial-gradient(circle at 85% 30%,rgba(18,247,255,.13),transparent 34%),radial-gradient(circle at 50% 88%,rgba(155,32,255,.18),transparent 32%),linear-gradient(120deg,#09040f 0%,#0a071a 38%,#021923 100%);overflow-x:hidden}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.14;mix-blend-mode:screen;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:44px 44px;mask-image:linear-gradient(to bottom,black,transparent 82%)}
+    body:after{content:"CHAOS · DRAMA · CONNECTION · BETRAYAL · LOVE · POWER · CHAOS · DRAMA · CONNECTION · BETRAYAL · LOVE · POWER";position:fixed;left:-4vw;top:44%;z-index:-1;white-space:nowrap;font-size:clamp(5rem,15vw,13rem);font-weight:900;letter-spacing:-.08em;opacity:.035;animation:drift 38s linear infinite}
+    @keyframes drift{from{transform:translateX(0)}to{transform:translateX(-45%)}}@keyframes flicker{0%,100%{opacity:1}47%{opacity:.55}52%{opacity:1}57%{opacity:.3}62%{opacity:.95}}
+    .wrap{width:min(1120px,100%);margin:auto;padding:64px 24px 80px}.topline{display:flex;align-items:center;gap:14px;color:var(--muted);font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.32em;font-size:.78rem;margin-bottom:34px}.dot{width:12px;height:12px;border-radius:999px;background:var(--magenta);box-shadow:0 0 18px var(--magenta),0 0 36px var(--magenta);animation:flicker 2.3s infinite}
+    h1{margin:0;font-size:clamp(3.4rem,11vw,8.5rem);line-height:.92;letter-spacing:-.07em}.magenta{color:var(--magenta);text-shadow:0 0 22px rgba(255,22,216,.8),0 0 60px rgba(255,22,216,.45)}.cyan{color:var(--cyan);text-shadow:0 0 22px rgba(18,247,255,.75),0 0 60px rgba(18,247,255,.35)}.muted{color:rgba(247,242,255,.68)}
+    .hero-copy{max-width:760px;margin-top:34px;font-size:clamp(1.2rem,2.3vw,2rem);line-height:1.35;font-weight:650}.hero-sub{max-width:780px;color:var(--muted);font-size:1.08rem;line-height:1.7;margin-top:20px}
+    section{margin-top:86px}.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding-bottom:20px;margin-bottom:32px;border-bottom:1px solid var(--line)}h2{margin:0;font-size:clamp(2rem,4.3vw,3.4rem);line-height:1.1;letter-spacing:-.045em}.count{color:var(--muted);font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.9rem;letter-spacing:.18em;white-space:nowrap}.section-copy{max-width:760px;color:var(--muted);font-size:1.05rem;line-height:1.65;margin-bottom:26px}
+    .chips{display:flex;flex-wrap:wrap;gap:12px}.chip{--chip:var(--magenta);display:inline-flex;align-items:center;border:1.5px solid var(--chip);border-radius:999px;padding:9px 18px;color:var(--text);background:rgba(0,0,0,.28);box-shadow:0 0 18px color-mix(in srgb,var(--chip),transparent 35%),inset 0 0 18px color-mix(in srgb,var(--chip),transparent 82%);font-weight:650;letter-spacing:.02em}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.card{--accent:var(--magenta);position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.12);border-radius:28px;padding:34px;min-height:430px;background:radial-gradient(circle at 85% 8%,color-mix(in srgb,var(--accent),transparent 72%),transparent 34%),linear-gradient(140deg,rgba(255,255,255,.06),rgba(255,255,255,.015)),var(--card);backdrop-filter:blur(16px);box-shadow:0 18px 60px rgba(0,0,0,.38),inset 0 0 0 1px rgba(255,255,255,.035);transition:.22s ease}.card:hover{transform:translateY(-5px);border-color:color-mix(in srgb,var(--accent),transparent 20%);box-shadow:0 25px 78px rgba(0,0,0,.5),0 0 28px color-mix(in srgb,var(--accent),transparent 68%)}
+    .mode-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;color:var(--muted);font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;letter-spacing:.12em}.emoji{font-size:2.4rem;filter:drop-shadow(0 0 18px var(--accent))}h3{color:var(--accent);margin:0 0 14px;font-size:clamp(1.7rem,3vw,2.4rem);line-height:1.08;letter-spacing:-.045em;text-shadow:0 0 20px color-mix(in srgb,var(--accent),transparent 45%)}.tagline{font-size:1.18rem;line-height:1.45;font-weight:700;margin:0 0 12px}.blurb{color:var(--muted);font-style:italic;line-height:1.6;margin:0 0 24px}.spark{margin-top:24px;border-left:2px solid var(--accent);border-radius:16px;background:rgba(0,0,0,.22);padding:16px 18px}.spark-label{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;color:var(--accent);text-transform:uppercase;letter-spacing:.22em;font-size:.7rem;margin-bottom:8px}.spark p{margin:0;color:rgba(247,242,255,.86);line-height:1.6}.copy-row{margin-top:22px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted);font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:.18em}.copy-btn{cursor:pointer;border:1px solid rgba(255,255,255,.16);color:rgba(247,242,255,.82);background:rgba(0,0,0,.28);border-radius:999px;padding:8px 13px;font:inherit;transition:.18s ease}.copy-btn:hover{transform:translateY(-2px);color:var(--accent);border-color:var(--accent);box-shadow:0 0 20px color-mix(in srgb,var(--accent),transparent 50%)}
+    .wild{border:1px solid rgba(255,22,216,.45);border-radius:34px;padding:44px;background:radial-gradient(circle at 18% 18%,rgba(255,22,216,.22),transparent 34%),radial-gradient(circle at 88% 75%,rgba(18,247,255,.13),transparent 36%),rgba(10,8,28,.58);box-shadow:0 0 38px rgba(255,22,216,.14)}.combos{margin-top:34px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.combo{border:1px solid rgba(255,255,255,.13);border-radius:22px;padding:22px;background:rgba(0,0,0,.22)}.combo b{color:var(--cyan);font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.9rem;font-weight:600}.combo p{margin:8px 0 0;color:rgba(247,242,255,.88);line-height:1.45}
+    footer{margin-top:88px;padding-top:42px;border-top:1px solid var(--line);text-align:center}footer .main{color:var(--cyan);font-size:clamp(1.3rem,3vw,2rem);font-style:italic;line-height:1.35}footer .sub{color:var(--hotpink);font-size:1rem;font-style:italic;margin-top:12px}footer .end{color:var(--muted);font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.5em;margin-top:38px;font-size:.78rem}
+    @media (max-width:780px){.wrap{padding:52px 22px 70px}.grid,.combos{grid-template-columns:1fr}.card{min-height:auto;padding:28px}.wild{padding:30px 24px}.section-head{align-items:flex-start}body:after{display:none}}
+  </style>
 </head>
 <body>
-<div class="container">
-
-  <div class="hero">
-    <div style="font-size: 3.5rem; margin-bottom: 10px;">🌱</div>
-    <h1>Pressure Presets</h1>
-    <h2 class="tagline">for Living Characters</h2>
-    <p class="description">Power is taken. Loyalties shift. <span style="color:#00ffff">Secrets change everything.</span></p>
-    <p class="description">Throw these wild combinations of social and emotional forces into your simulations and watch the drama spark, twist, and explode into life.</p>
-  </div>
-
-  <div class="section">
-    <h2 class="section-title">🌟 Core Pressures — the electric sparks</h2>
-    <div class="chips">
-      <div class="chip">friendship</div>
-      <div class="chip">trust</div>
-      <div class="chip">curiosity</div>
-      <div class="chip">protectiveness</div>
-      <div class="chip">jealousy</div>
-      <div class="chip">rivalry</div>
-      <div class="chip">attraction</div>
-      <div class="chip">seduction</div>
-      <div class="chip">teasing</div>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2 class="section-title">⚡ Preset Modes — pick a flavor of chaos</h2>
-
-    <div class="mode drama">
-      <div class="mode-header">
-        <span style="font-size: 2rem;">🎭</span>
-        <h3 class="mode-title">Drama & Tension</h3>
-      </div>
-      <p>Heart-pounding conflicts. Shifting alliances. Emotional fireworks.</p>
-      <div class="chips">
-        <div class="chip">jealousy</div>
-        <div class="chip">betrayal</div>
-        <div class="chip">suspicion</div>
-        <div class="chip">envy</div>
-        <div class="chip">rivalry</div>
-      </div>
-      <div class="scene">A whispered rumor at the dinner table turns into a thrown glass. By midnight, two best friends aren't speaking and a third is texting the wrong person on purpose.</div>
-    </div>
-
-    <div class="mode romance">
-      <div class="mode-header">
-        <span style="font-size: 2rem;">💕</span>
-        <h3 class="mode-title">Romance & Connection</h3>
-      </div>
-      <p>Slow burns, deep bonds, and feelings that hit hard.</p>
-      <div class="chips">
-        <div class="chip">attraction</div>
-        <div class="chip">seduction</div>
-        <div class="chip">protectiveness</div>
-        <div class="chip">longing</div>
-      </div>
-    </div>
-
-    <div class="mode chaos">
-      <div class="mode-header">
-        <span style="font-size: 2rem;">💀</span>
-        <h3 class="mode-title">Chaos & High Drama</h3>
-      </div>
-      <p>Everything spirals into unpredictable intensity.</p>
-      <div class="chips">
-        <div class="chip">confrontation</div>
-        <div class="chip">argument</div>
-        <div class="chip">suspicion</div>
-        <div class="chip">narcissism</div>
-        <div class="chip">overreaction</div>
-        <div class="chip">paranoia</div>
-        <div class="chip">betrayal</div>
-      </div>
-    </div>
-
-    <div class="mode comedy">
-      <div class="mode-header">
-        <span style="font-size: 2rem;">🤣</span>
-        <h3 class="mode-title">Comedy & Lighthearted</h3>
-      </div>
-      <p>Bursts of absurdity to balance the storm.</p>
-      <div class="chips">
-        <div class="chip">awkward</div>
-        <div class="chip">misunderstanding</div>
-        <div class="chip">overreaction</div>
-        <div class="chip">confusion</div>
-        <div class="chip">silly behavior</div>
-      </div>
-    </div>
-
-    <div class="mode psych">
-      <div class="mode-header">
-        <span style="font-size: 2rem;">🧠</span>
-        <h3 class="mode-title">Psychological & Depth</h3>
-      </div>
-      <p>Dive into the hidden mind and soul.</p>
-      <div class="chips">
-        <div class="chip">guilt</div>
-        <div class="chip">envy</div>
-        <div class="chip">obsession</div>
-        <div class="chip">avoidance</div>
-        <div class="chip">suspicion</div>
-        <div class="chip">regret</div>
-        <div class="chip">curiosity</div>
-        <div class="chip">possession</div>
-      </div>
-    </div>
-
-    <div class="mode survival">
-      <div class="mode-header">
-        <span style="font-size: 2rem;">☢️</span>
-        <h3 class="mode-title">Survival & Challenge</h3>
-      </div>
-      <p>High-stakes worlds where every choice bites back.</p>
-      <div class="chips">
-        <div class="chip">scarcity</div>
-        <div class="chip">resource competition</div>
-        <div class="chip">paranoia</div>
-        <div class="chip">betrayal</div>
-        <div class="chip">self-preservation</div>
-        <div class="chip">desperation</div>
-        <div class="chip">territorial behavior</div>
-        <div class="chip">fear</div>
-        <div class="chip">mistrust</div>
-      </div>
-    </div>
-
-  </div>
-
-  <footer>
-    Living Characters — Chaos. Drama. Connection. Betrayal. Love. Power.<br>
-    The stories they create. The world they shape.<br><br>
-    <strong>PRESS · MIX · EXPLODE</strong>
-  </footer>
-
-</div>
+  <main class="wrap">
+    <header>
+      <div class="topline"><span class="dot"></span>Living Characters · v1</div>
+      <h1><span class="magenta">🌱 Pressure</span><br>Presets<br><span class="muted">for</span> <span class="cyan">Living Characters</span></h1>
+      <p class="hero-copy">Power is taken. Loyalties shift. <span class="cyan">Secrets change everything.</span></p>
+      <p class="hero-sub">Throw these wild combinations of social and emotional forces into your simulations and watch the drama spark, twist, and explode into life. Mix them like a mad scientist. No rules, just chaotic storytelling fuel.</p>
+    </header>
+    <section><div class="section-head"><h2><span class="magenta">🌟 Core Pressures</span> <span class="muted">— the electric sparks</span></h2><span class="count">01 / 02</span></div><p class="section-copy">These are the raw ingredients that fuel every tangled relationship. Start simple and let the connections get deliciously messy.</p><div class="chips"><span class="chip">friendship</span><span class="chip">trust</span><span class="chip">curiosity</span><span class="chip">protectiveness</span><span class="chip">jealousy</span><span class="chip">rivalry</span><span class="chip">attraction</span><span class="chip">seduction</span><span class="chip">teasing</span></div></section>
+    <section><div class="section-head"><h2><span class="cyan">⚡ Preset Modes</span> <span class="muted">— pick a flavor of chaos</span></h2><span class="count">02 / 02</span></div><div class="grid">
+      <article class="card" style="--accent:var(--orange)"><div class="mode-top"><span>mode_01</span><span class="emoji">🎭</span></div><h3>Drama & Tension</h3><p class="tagline">Heart-pounding conflicts. Shifting alliances. Emotional fireworks.</p><p class="blurb">Soap-opera twists and love triangles that keep you hooked.</p><div class="chips"><span class="chip" style="--chip:var(--orange)">jealousy</span><span class="chip" style="--chip:var(--orange)">betrayal</span><span class="chip" style="--chip:var(--orange)">suspicion</span><span class="chip" style="--chip:var(--orange)">envy</span><span class="chip" style="--chip:var(--orange)">rivalry</span><span class="chip" style="--chip:var(--orange)">confrontation</span><span class="chip" style="--chip:var(--orange)">gossip</span><span class="chip" style="--chip:var(--orange)">misunderstanding</span><span class="chip" style="--chip:var(--orange)">obsession</span></div><div class="spark"><div class="spark-label">✦ scene spark</div><p>A whispered rumor at the dinner table turns into a thrown glass. By midnight, two best friends are not speaking.</p></div><div class="copy-row"><span>9 pressures</span><button class="copy-btn" data-copy="jealousy, betrayal, suspicion, envy, rivalry, confrontation, gossip, misunderstanding, obsession">copy ⧉</button></div></article>
+      <article class="card" style="--accent:var(--hotpink)"><div class="mode-top"><span>mode_02</span><span class="emoji">💕</span></div><h3>Romance & Connection</h3><p class="tagline">Slow burns, deep bonds, and feelings that hit hard.</p><p class="blurb">The kind of tension that makes the story throb.</p><div class="chips"><span class="chip" style="--chip:var(--hotpink)">attraction</span><span class="chip" style="--chip:var(--hotpink)">seduction</span><span class="chip" style="--chip:var(--hotpink)">protectiveness</span><span class="chip" style="--chip:var(--hotpink)">curiosity</span><span class="chip" style="--chip:var(--hotpink)">trust</span><span class="chip" style="--chip:var(--hotpink)">jealousy</span><span class="chip" style="--chip:var(--hotpink)">teasing</span><span class="chip" style="--chip:var(--hotpink)">longing</span></div><div class="spark"><div class="spark-label">✦ scene spark</div><p>The power cuts out, her hand finds his in the dark, and neither of them lets go first.</p></div><div class="copy-row"><span>8 pressures</span><button class="copy-btn" data-copy="attraction, seduction, protectiveness, curiosity, trust, jealousy, teasing, longing">copy ⧉</button></div></article>
+      <article class="card" style="--accent:var(--violet)"><div class="mode-top"><span>mode_03</span><span class="emoji">💀</span></div><h3>Chaos & High Drama</h3><p class="tagline">Everything spirals into unpredictable intensity.</p><p class="blurb">Reality-TV levels of “what the hell just happened?”</p><div class="chips"><span class="chip" style="--chip:var(--violet)">confrontation</span><span class="chip" style="--chip:var(--violet)">argument</span><span class="chip" style="--chip:var(--violet)">suspicion</span><span class="chip" style="--chip:var(--violet)">narcissism</span><span class="chip" style="--chip:var(--violet)">overreaction</span><span class="chip" style="--chip:var(--violet)">paranoia</span><span class="chip" style="--chip:var(--violet)">betrayal</span></div><div class="spark"><div class="spark-label">✦ scene spark</div><p>An accusation lands wrong, an old text resurfaces, and suddenly everyone is yelling.</p></div><div class="copy-row"><span>7 pressures</span><button class="copy-btn" data-copy="confrontation, argument, suspicion, narcissism, overreaction, paranoia, betrayal">copy ⧉</button></div></article>
+      <article class="card" style="--accent:var(--gold)"><div class="mode-top"><span>mode_04</span><span class="emoji">🤣</span></div><h3>Comedy & Lighthearted</h3><p class="tagline">Bursts of absurdity to balance the storm.</p><p class="blurb">Laughs that make the wild ride even better.</p><div class="chips"><span class="chip" style="--chip:var(--gold)">awkward</span><span class="chip" style="--chip:var(--gold)">misunderstanding</span><span class="chip" style="--chip:var(--gold)">overreaction</span><span class="chip" style="--chip:var(--gold)">confusion</span><span class="chip" style="--chip:var(--gold)">silly behavior</span></div><div class="spark"><div class="spark-label">✦ scene spark</div><p>He misheard the question, answered with full confidence, and now the room thinks he is proposing.</p></div><div class="copy-row"><span>5 pressures</span><button class="copy-btn" data-copy="awkward, misunderstanding, overreaction, confusion, silly behavior">copy ⧉</button></div></article>
+      <article class="card" style="--accent:var(--lime)"><div class="mode-top"><span>mode_05</span><span class="emoji">🧠</span></div><h3>Psychological & Depth</h3><p class="tagline">Dive into the hidden mind and soul.</p><p class="blurb">Stories that crawl under your skin and stay there.</p><div class="chips"><span class="chip" style="--chip:var(--lime)">guilt</span><span class="chip" style="--chip:var(--lime)">envy</span><span class="chip" style="--chip:var(--lime)">obsession</span><span class="chip" style="--chip:var(--lime)">avoidance</span><span class="chip" style="--chip:var(--lime)">suspicion</span><span class="chip" style="--chip:var(--lime)">regret</span><span class="chip" style="--chip:var(--lime)">curiosity</span><span class="chip" style="--chip:var(--lime)">possession</span></div><div class="spark"><div class="spark-label">✦ scene spark</div><p>She edits the apology, deletes it, and decides to act like nothing happened. He notices.</p></div><div class="copy-row"><span>8 pressures</span><button class="copy-btn" data-copy="guilt, envy, obsession, avoidance, suspicion, regret, curiosity, possession">copy ⧉</button></div></article>
+      <article class="card" style="--accent:var(--tomato)"><div class="mode-top"><span>mode_06</span><span class="emoji">☢️</span></div><h3>Survival & Challenge</h3><p class="tagline">High-stakes worlds where every choice bites back.</p><p class="blurb">Gritty, morally gray survival that refuses to let go.</p><div class="chips"><span class="chip" style="--chip:var(--tomato)">scarcity</span><span class="chip" style="--chip:var(--tomato)">resource competition</span><span class="chip" style="--chip:var(--tomato)">paranoia</span><span class="chip" style="--chip:var(--tomato)">betrayal</span><span class="chip" style="--chip:var(--tomato)">self-preservation</span><span class="chip" style="--chip:var(--tomato)">desperation</span><span class="chip" style="--chip:var(--tomato)">territorial behavior</span><span class="chip" style="--chip:var(--tomato)">fear</span><span class="chip" style="--chip:var(--tomato)">mistrust</span></div><div class="spark"><div class="spark-label">✦ scene spark</div><p>Three cans of food left. Four people. By morning, one bed is empty.</p></div><div class="copy-row"><span>9 pressures</span><button class="copy-btn" data-copy="scarcity, resource competition, paranoia, betrayal, self-preservation, desperation, territorial behavior, fear, mistrust">copy ⧉</button></div></article>
+    </div></section>
+    <section class="wild"><h2><span class="magenta">Wild Tips</span> <span class="muted">for Maximum Spark</span></h2><p class="section-copy">Mix them in crazy combos and see what explodes. Toss in wildcards for those unforgettable <span class="cyan"><em>“holy shit”</em></span> moments. Invent your own. The simulation loves the unexpected.</p><div class="topline" style="margin:28px 0 18px;letter-spacing:.25em">// wildcards</div><div class="chips"><span class="chip" style="--chip:var(--magenta)">yelling</span><span class="chip" style="--chip:var(--cyan)">food fight</span><span class="chip" style="--chip:var(--gold)">awkward silence</span><span class="chip" style="--chip:var(--lime)">broken glass</span><span class="chip" style="--chip:var(--tomato)">stolen letter</span><span class="chip" style="--chip:var(--violet)">wrong name</span><span class="chip" style="--chip:var(--magenta)">thunderstorm</span><span class="chip" style="--chip:var(--cyan)">uninvited guest</span><span class="chip" style="--chip:var(--gold)">burnt dinner</span><span class="chip" style="--chip:var(--lime)">midnight knock</span></div><div class="combos"><div class="combo"><b>Romance × Chaos</b><p>longing meets paranoia at 2am</p></div><div class="combo"><b>Survival × Comedy</b><p>scarcity, but someone burns the dinner</p></div><div class="combo"><b>Drama × Psych</b><p>betrayal lands on a bed of guilt</p></div></div></section>
+    <footer><div class="main">Living Characters — Chaos. Drama. Connection. Betrayal. Love. Power.</div><div class="sub">The stories they create. The world they shape.</div><div class="end">press · mix · explode</div></footer>
+  </main>
+  <script>document.querySelectorAll(".copy-btn").forEach(btn=>{btn.addEventListener("click",async()=>{const old=btn.textContent;try{await navigator.clipboard.writeText(btn.dataset.copy);btn.textContent="copied ✓";setTimeout(()=>btn.textContent=old,1400)}catch{btn.textContent="copy failed";setTimeout(()=>btn.textContent=old,1400)}})})</script>
 </body>
 </html>
