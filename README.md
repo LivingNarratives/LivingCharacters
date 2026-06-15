@@ -1,4 +1,4 @@
-![Living Characters](https://raw.githubusercontent.com/LivingNarratives/LivingCharacters/main/promo-collage.jpg)
+![Living Characters](https://raw.githubusercontent.com/LivingNarratives/LivingCharacters/main/LivingCharacters.png)
 
 <div align="center">
 
