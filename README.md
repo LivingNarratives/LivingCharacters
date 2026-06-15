@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/LivingCharacters.png" alt="Living Characters" width="100%">
+  <img src="LivingCharacters.png" alt="Living Characters" width="100%">
 </p>
 
 <div align="center">
