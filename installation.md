@@ -33,10 +33,15 @@ This opens the AI Dungeon script editor.
 
 ## Step 4: Install the Living Characters Library
 
-1. Go to the **Library** tab.
-2. Copy the full Living Characters library script.
-3. Paste it into the Library section.
-4. Save your changes.
+The easiest way is to copy the full script from the repo:
+
+**https://raw.githubusercontent.com/LivingNarratives/LivingCharacters/main/living-characters-library.js**
+
+1. Go to the **Library** tab in the script editor.
+2. Paste the entire contents of the file above.
+3. Save your changes.
+
+(You can also find the latest version and full documentation on the GitHub repo.)
 
 ---
 
