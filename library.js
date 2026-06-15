@@ -36,7 +36,7 @@ function LivingCharacters(hook, hookText) {
   "use strict";
 
   const CFG = {
-    VERSION: "2.24-living-characters-2026-06-14",
+    VERSION: "2.25-living-characters-2026-06-15",
 
     // All cast / protagonist / pressures / pacing come from the editable config
     // Story Card below. No scenario-specific names live in engine logic.
@@ -165,6 +165,18 @@ function LivingCharacters(hook, hookText) {
       "",
       "SCENE_RELEVANCE_MODE:",
       "strict",
+      "",
+      "PRESSURES:",
+      "friendship",
+      "trust",
+      "curiosity",
+      "protectiveness",
+      "jealousy",
+      "rivalry",
+      "attraction",
+      "teasing",
+      "gossip",
+      "misunderstanding",
       "",
       "LIFE_CARD_INTERVAL:",
       "15",
