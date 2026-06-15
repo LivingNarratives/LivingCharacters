@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="LivingCharacters.png" alt="Living Characters" width="100%">
-</p>
+![Living Characters](https://raw.githubusercontent.com/LivingNarratives/LivingCharacters/main/promo-collage.jpg)
 
 <div align="center">
 
@@ -8,12 +6,20 @@
 
 ### Autonomous NPC relationship simulation for AI Dungeon
 
-**Living Characters doesn't write stories.  
-It gives characters reasons to create stories themselves.**
+**Living Characters doesn't write stories.**  
+**It gives characters reasons to create stories themselves.**
 
 [Installation](./installation.md) • [Configuration](./configuration.md) • [Pressure Presets Website](https://LivingNarratives.github.io/LivingCharacters) • [License](./LICENSE)
 
 </div>
+
+---
+
+## 🎮 Try the Demo
+
+Want to see it in action right away?
+
+**[▶ Play the Living Characters Demo Scenario](https://play.aidungeon.com/scenario/BgA79ymBMXCC/living-characters?share=true&published=true)**
 
 ---
 
