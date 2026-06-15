@@ -143,6 +143,8 @@ avoidance
 tension
 ```
 
+**See the full list of Pressure Presets here:** https://LivingNarratives.github.io/LivingCharacters
+
 ---
 
 ## Step 10: Start Playing
