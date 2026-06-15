@@ -1,145 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pressure Presets — Living Characters</title>
-<script src="https://cdn.tailwindcss.com"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
-  :root {
-    --magenta: #ff00ff;
-    --cyan: #00ffff;
-    --hotpink: #ff69b4;
-  }
-  body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; }
-  .glow-magenta { color: var(--magenta); text-shadow: 0 0 20px var(--magenta); }
-  .glow-cyan { color: var(--cyan); text-shadow: 0 0 20px var(--cyan); }
-  .chip { 
-    background: rgba(255,255,255,0.1); 
-    border: 1px solid var(--magenta); 
-    color: #fff; 
-    padding: 0.25rem 0.75rem; 
-    border-radius: 9999px; 
-    font-size: 0.75rem; 
-    transition: all 0.2s;
-  }
-  .chip:hover { transform: translateY(-1px); box-shadow: 0 0 10px var(--magenta); }
-  .section-header { font-family: 'Space Grotesk', sans-serif; }
+body { background: #1a0022; color: #fff; font-family: system-ui, sans-serif; }
+.container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+h1 { font-size: 3.5rem; background: linear-gradient(90deg, #ff00ff, #00ffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.chip { background: #2a0033; color: #ff00ff; padding: 8px 16px; border-radius: 9999px; display: inline-block; margin: 4px; border: 1px solid #ff00ff; }
 </style>
 </head>
-<body class="bg-[#0a0a0a] text-white">
-  <div class="max-w-6xl mx-auto px-6 py-16">
-    <!-- HERO -->
-    <div class="text-center mb-16">
-      <div class="flex items-center justify-center gap-3 mb-6">
-        <div class="w-2 h-2 bg-[var(--magenta)] rounded-full animate-pulse"></div>
-        <span class="font-mono text-xs tracking-[3px] text-white/60">LIVING CHARACTERS · V1</span>
-      </div>
-      
-      <h1 class="text-6xl md:text-7xl font-bold mb-4">
-        <span class="glow-magenta">🌱 Pressure</span><br>
-        <span class="text-white">Presets for</span><br>
-        <span class="glow-cyan">Living Characters</span>
-      </h1>
-      
-      <p class="max-w-xl mx-auto text-xl text-white/90 mb-4">
-        Power is taken. Loyalties shift. <span class="text-[var(--cyan)]">Secrets change everything.</span>
-      </p>
-      <p class="max-w-xl mx-auto text-white/70">
-        Throw these wild combinations of social and emotional forces into your simulations and watch the drama spark, twist, and explode into life.
-      </p>
-    </div>
-
-    <!-- CORE PRESSURES -->
-    <div class="mb-16">
-      <div class="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
-        <h2 class="text-3xl font-bold section-header">
-          <span class="text-[var(--magenta)]">★</span> Core Pressures — the electric sparks
-        </h2>
-        <span class="font-mono text-xs text-white/50">01 / 02</span>
-      </div>
-      <p class="text-white/70 mb-6">These are the raw ingredients that fuel every tangled relationship. Start simple and let the connections get deliciously messy.</p>
-      
-      <div class="flex flex-wrap gap-2">
-        <div class="chip">friendship</div>
-        <div class="chip">trust</div>
-        <div class="chip">curiosity</div>
-        <div class="chip">protectiveness</div>
-        <div class="chip">jealousy</div>
-        <div class="chip">rivalry</div>
-        <div class="chip">attraction</div>
-        <div class="chip">seduction</div>
-        <div class="chip">teasing</div>
-      </div>
-    </div>
-
-    <!-- MODES -->
-    <div class="mb-16">
-      <div class="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
-        <h2 class="text-3xl font-bold section-header">
-          <span class="text-[var(--cyan)]">⚡</span> Preset Modes — pick a flavor of chaos
-        </h2>
-        <span class="font-mono text-xs text-white/50">02 / 02</span>
-      </div>
-
-      <div class="grid md:grid-cols-2 gap-6">
-        <!-- Drama -->
-        <div class="border border-white/10 bg-white/5 rounded-2xl p-6 hover:border-[#ff4500] transition-all">
-          <div class="flex justify-between mb-4">
-            <span class="font-mono text-xs text-white/50">mode_01</span>
-            <span class="text-3xl">🎭</span>
-          </div>
-          <h3 class="text-2xl font-bold mb-2" style="color: #ff4500">Drama & Tension</h3>
-          <p class="text-white/80 mb-1">Heart-pounding conflicts. Shifting alliances. Emotional fireworks.</p>
-          <p class="text-sm italic text-white/60 mb-4">Soap-opera twists and love triangles that keep you hooked.</p>
-          
-          <div class="flex flex-wrap gap-1.5 mb-4">
-            <div class="chip" style="border-color:#ff4500">jealousy</div>
-            <div class="chip" style="border-color:#ff4500">betrayal</div>
-            <div class="chip" style="border-color:#ff4500">suspicion</div>
-            <div class="chip" style="border-color:#ff4500">envy</div>
-            <div class="chip" style="border-color:#ff4500">rivalry</div>
-            <div class="chip" style="border-color:#ff4500">confrontation</div>
-            <div class="chip" style="border-color:#ff4500">gossip</div>
-            <div class="chip" style="border-color:#ff4500">misunderstanding</div>
-            <div class="chip" style="border-color:#ff4500">obsession</div>
-          </div>
-          <div class="text-xs text-white/50">9 pressures</div>
-        </div>
-
-        <!-- Romance -->
-        <div class="border border-white/10 bg-white/5 rounded-2xl p-6 hover:border-[#ff69b4] transition-all">
-          <div class="flex justify-between mb-4">
-            <span class="font-mono text-xs text-white/50">mode_02</span>
-            <span class="text-3xl">💕</span>
-          </div>
-          <h3 class="text-2xl font-bold mb-2" style="color: #ff69b4">Romance & Connection</h3>
-          <p class="text-white/80 mb-1">Slow burns, deep bonds, and feelings that hit hard.</p>
-          <p class="text-sm italic text-white/60 mb-4">The kind of tension that makes the story throb.</p>
-          
-          <div class="flex flex-wrap gap-1.5 mb-4">
-            <div class="chip" style="border-color:#ff69b4">attraction</div>
-            <div class="chip" style="border-color:#ff69b4">seduction</div>
-            <div class="chip" style="border-color:#ff69b4">protectiveness</div>
-            <div class="chip" style="border-color:#ff69b4">curiosity</div>
-            <div class="chip" style="border-color:#ff69b4">trust</div>
-            <div class="chip" style="border-color:#ff69b4">jealousy</div>
-            <div class="chip" style="border-color:#ff69b4">teasing</div>
-            <div class="chip" style="border-color:#ff69b4">longing</div>
-          </div>
-          <div class="text-xs text-white/50">8 pressures</div>
-        </div>
-
-        <!-- Add other modes similarly -->
-        <!-- For brevity, I'll add a note that the full version has all 6 modes -->
-      </div>
-    </div>
-
-    <div class="text-center text-white/60 text-sm">
-      Full interactive version with all modes + copy buttons coming soon.<br>
-      Check back or message me for the complete React source.
-    </div>
-  </div>
+<body>
+<div class="container">
+<h1>🌱 Pressure Presets for Living Characters</h1>
+<p>Power is taken. Loyalties shift. Secrets change everything.</p>
+<h2>Core Pressures</h2>
+<div class="chip">friendship</div>
+<div class="chip">trust</div>
+<div class="chip">curiosity</div>
+<!-- Add more sections from the code -->
+</div>
 </body>
 </html>
