@@ -8,8 +8,6 @@ Living Characters creates autonomous social threads between NPCs, allowing frien
 
 The result is a world where characters continue living their own lives instead of waiting for the protagonist to act.
 
-Autonomous social simulation system that creates evolving relationships, rivalries, drama, and emergent story threads for AI Dungeon.
-
 ## Known Model Behaviors
 
 ### Dynamic Large
