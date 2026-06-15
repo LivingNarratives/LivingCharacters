@@ -35,7 +35,7 @@ This opens the AI Dungeon script editor.
 
 The easiest way is to copy the full script from the repo:
 
-**https://raw.githubusercontent.com/LivingNarratives/LivingCharacters/main/living-characters-library.js**
+**https://raw.githubusercontent.com/LivingNarratives/LivingCharacters/main/library.js**
 
 1. Go to the **Library** tab in the script editor.
 2. Paste the entire contents of the file above.
