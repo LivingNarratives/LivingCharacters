@@ -7,15 +7,8 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
-:root {
-  --bg: #1a0022;
-  --card: #2a0033;
-  --magenta: #ff00ff;
-  --cyan: #00ffff;
-}
-
 body {
-  background: var(--bg);
+  background: #1a0022;
   color: #fff;
   font-family: 'Inter', system-ui, sans-serif;
   margin: 0;
@@ -38,14 +31,14 @@ h1 {
   font-family: 'Space Grotesk', sans-serif;
   font-size: 3.5rem;
   margin: 10px 0;
-  background: linear-gradient(90deg, var(--magenta), var(--cyan));
+  background: linear-gradient(90deg, #ff00ff, #00ffff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .tagline {
   font-size: 1.5rem;
-  color: var(--cyan);
+  color: #00ffff;
 }
 
 .description {
@@ -61,7 +54,7 @@ h1 {
 
 .section-title {
   font-size: 1.8rem;
-  color: var(--magenta);
+  color: #ff00ff;
   margin-bottom: 25px;
 }
 
@@ -73,25 +66,19 @@ h1 {
 
 .chip {
   background: #2a0033;
-  border: 2px solid var(--magenta);
-  color: var(--magenta);
+  border: 2px solid #ff00ff;
+  color: #ff00ff;
   padding: 10px 18px;
   border-radius: 9999px;
   font-weight: 600;
-  transition: all 0.2s;
-}
-
-.chip:hover {
-  background: var(--magenta);
-  color: #1a0022;
 }
 
 .mode {
-  background: var(--card);
+  background: #2a0033;
   border-radius: 20px;
   padding: 30px;
   margin-bottom: 25px;
-  border: 1px solid #ff00ff33;
+  border: 1px solid #ffffff22;
 }
 
 .mode-header {
@@ -103,18 +90,41 @@ h1 {
 
 .mode-title {
   font-size: 1.7rem;
-  color: var(--magenta);
 }
 
 .scene {
   background: #1a0022;
   padding: 20px;
   border-radius: 12px;
-  border-left: 4px solid var(--magenta);
   margin-top: 20px;
   font-style: italic;
   color: #ddd;
 }
+
+/* Different colors per mode */
+.drama { border-color: #ff7b00; }
+.drama .mode-title { color: #ff7b00; }
+.drama .chip { border-color: #ff7b00; color: #ff7b00; }
+
+.romance { border-color: #ff69b4; }
+.romance .mode-title { color: #ff69b4; }
+.romance .chip { border-color: #ff69b4; color: #ff69b4; }
+
+.chaos { border-color: #a020f0; }
+.chaos .mode-title { color: #a020f0; }
+.chaos .chip { border-color: #a020f0; color: #a020f0; }
+
+.comedy { border-color: #ffd700; }
+.comedy .mode-title { color: #ffd700; }
+.comedy .chip { border-color: #ffd700; color: #ffd700; }
+
+.psych { border-color: #32cd32; }
+.psych .mode-title { color: #32cd32; }
+.psych .chip { border-color: #32cd32; color: #32cd32; }
+
+.survival { border-color: #ff4500; }
+.survival .mode-title { color: #ff4500; }
+.survival .chip { border-color: #ff4500; color: #ff4500; }
 
 footer {
   text-align: center;
@@ -126,7 +136,6 @@ footer {
 <body>
 <div class="container">
 
-  <!-- HERO -->
   <div class="hero">
     <div style="font-size: 3.5rem; margin-bottom: 10px;">🌱</div>
     <h1>Pressure Presets</h1>
@@ -135,7 +144,6 @@ footer {
     <p class="description">Throw these wild combinations of social and emotional forces into your simulations and watch the drama spark, twist, and explode into life.</p>
   </div>
 
-  <!-- CORE PRESSURES -->
   <div class="section">
     <h2 class="section-title">🌟 Core Pressures — the electric sparks</h2>
     <div class="chips">
@@ -151,11 +159,10 @@ footer {
     </div>
   </div>
 
-  <!-- MODES -->
   <div class="section">
     <h2 class="section-title">⚡ Preset Modes — pick a flavor of chaos</h2>
 
-    <div class="mode">
+    <div class="mode drama">
       <div class="mode-header">
         <span style="font-size: 2rem;">🎭</span>
         <h3 class="mode-title">Drama & Tension</h3>
@@ -171,7 +178,7 @@ footer {
       <div class="scene">A whispered rumor at the dinner table turns into a thrown glass. By midnight, two best friends aren't speaking and a third is texting the wrong person on purpose.</div>
     </div>
 
-    <div class="mode">
+    <div class="mode romance">
       <div class="mode-header">
         <span style="font-size: 2rem;">💕</span>
         <h3 class="mode-title">Romance & Connection</h3>
@@ -185,7 +192,7 @@ footer {
       </div>
     </div>
 
-    <div class="mode">
+    <div class="mode chaos">
       <div class="mode-header">
         <span style="font-size: 2rem;">💀</span>
         <h3 class="mode-title">Chaos & High Drama</h3>
@@ -199,6 +206,58 @@ footer {
         <div class="chip">overreaction</div>
         <div class="chip">paranoia</div>
         <div class="chip">betrayal</div>
+      </div>
+    </div>
+
+    <div class="mode comedy">
+      <div class="mode-header">
+        <span style="font-size: 2rem;">🤣</span>
+        <h3 class="mode-title">Comedy & Lighthearted</h3>
+      </div>
+      <p>Bursts of absurdity to balance the storm.</p>
+      <div class="chips">
+        <div class="chip">awkward</div>
+        <div class="chip">misunderstanding</div>
+        <div class="chip">overreaction</div>
+        <div class="chip">confusion</div>
+        <div class="chip">silly behavior</div>
+      </div>
+    </div>
+
+    <div class="mode psych">
+      <div class="mode-header">
+        <span style="font-size: 2rem;">🧠</span>
+        <h3 class="mode-title">Psychological & Depth</h3>
+      </div>
+      <p>Dive into the hidden mind and soul.</p>
+      <div class="chips">
+        <div class="chip">guilt</div>
+        <div class="chip">envy</div>
+        <div class="chip">obsession</div>
+        <div class="chip">avoidance</div>
+        <div class="chip">suspicion</div>
+        <div class="chip">regret</div>
+        <div class="chip">curiosity</div>
+        <div class="chip">possession</div>
+      </div>
+    </div>
+
+    <div class="mode survival">
+      <div class="mode-header">
+        <span style="font-size: 2rem;">☢️</span>
+        <h3 class="mode-title">Survival & Challenge</h3>
+      </div>
+      <p>High-stakes worlds where every choice bites back.</p>
+      <div class="chips">
+        <div class="chip">scarcity</div>
+        <div class="chip">resource competition</div>
+        <div class="chip">paranoia</div>
+        <div class="chip">betrayal</div>
+        <div class="chip">self-preservation</div>
+        <div class="chip">desperation</div>
+        <div class="chip">territorial behavior</div>
+        <div class="chip">fear</div>
+        <div class="chip">mistrust</div>
       </div>
     </div>
 
