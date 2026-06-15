@@ -1,11 +1,51 @@
 ![Living Characters](https://raw.githubusercontent.com/LivingNarratives/LivingCharacters/main/promo-collage.jpg)
 
-# Living Characters
+<div align="center">
 
-**Chaos. Drama. Connection. Betrayal. Love. Power.**
+# 🌱 Living Characters
 
-An autonomous social simulation where characters live, betray, love, and evolve their own chaotic dramas.
+### Autonomous NPC relationship simulation for AI Dungeon
 
-[Pressure Presets Website](https://LivingNarratives.github.io/LivingCharacters)
+**Living Characters doesn't write stories.  
+It gives characters reasons to create stories themselves.**
 
-The stories they create. The world they shape.
+[Installation](./Installation) • [Configuration](./Configuration%20Card%20Setup) • [Pressure Sets](./Pressure%20Set%20Ups) • [License](./LICENSE)
+
+</div>
+
+---
+
+## ✨ What It Does
+
+Living Characters creates autonomous social threads between NPCs so your story world stops revolving only around the protagonist.
+
+| Without Living Characters | With Living Characters |
+|---|---|
+| Everyone waits for the player. | NPCs develop their own drama. |
+| Relationships reset constantly. | Life Cards preserve ongoing social threads. |
+| The world feels reactive. | The world feels alive. |
+
+---
+
+## 🌿 Characters Can Develop
+
+| Relationships | Drama | Social Texture |
+|---|---|---|
+| Friendships | Rivalries | Gossip |
+| Attraction | Betrayal | Avoidance |
+| Trust | Jealousy | Grudges |
+| Protectiveness | Conflict | Long-term arcs |
+
+---
+
+## 🎭 Example
+
+**Without Living Characters**
+
+```text
+Jessica enters the room.
+
+Everyone looks at Jessica.
+
+Everyone waits for Jessica to do something.
+```
