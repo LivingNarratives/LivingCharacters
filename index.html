@@ -1,192 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pressure Presets — Living Characters</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
-        
-        body {
-            background: #1a0022;
-            color: #fff;
-            font-family: 'Inter', system-ui, sans-serif;
-            margin: 0;
-            padding: 0;
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
-        
-        .hero {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-        
-        h1 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 3.8rem;
-            margin: 0;
-            background: linear-gradient(90deg, #ff00ff, #00ffff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            line-height: 1;
-        }
-        
-        .tagline {
-            font-size: 1.5rem;
-            color: #00ffff;
-            margin: 15px 0;
-        }
-        
-        .description {
-            font-size: 1.15rem;
-            max-width: 700px;
-            margin: 0 auto;
-            color: #ccc;
-        }
-        
-        .section {
-            margin-bottom: 50px;
-        }
-        
-        .section-title {
-            font-size: 1.8rem;
-            color: #ff00ff;
-            margin-bottom: 20px;
-        }
-        
-        .chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .chip {
-            background: #2a0033;
-            border: 2px solid #ff00ff;
-            color: #ff00ff;
-            padding: 10px 18px;
-            border-radius: 9999px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        
-        .chip:hover {
-            background: #ff00ff;
-            color: #1a0022;
-            transform: translateY(-2px);
-        }
-        
-        .mode {
-            background: #2a0033;
-            border-radius: 16px;
-            padding: 25px;
-            margin-bottom: 20px;
-            border: 1px solid #ff00ff33;
-        }
-        
-        .mode-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        
-        .mode-title {
-            font-size: 1.6rem;
-            color: #ff00ff;
-        }
-        
-        .scene {
-            background: #1a0022;
-            padding: 18px;
-            border-radius: 10px;
-            border-left: 4px solid #ff00ff;
-            margin-top: 15px;
-            font-style: italic;
-            color: #ddd;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pressure Presets — Living Characters</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #1a0022;
+  --card: #2a0033;
+  --magenta: #ff00ff;
+  --cyan: #00ffff;
+}
+
+body {
+  background: var(--bg);
+  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 3.5rem;
+  margin: 10px 0;
+  background: linear-gradient(90deg, var(--magenta), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.tagline {
+  font-size: 1.5rem;
+  color: var(--cyan);
+}
+
+.description {
+  font-size: 1.15rem;
+  color: #ccc;
+  max-width: 700px;
+  margin: 20px auto;
+}
+
+.section {
+  margin-bottom: 60px;
+}
+
+.section-title {
+  font-size: 1.8rem;
+  color: var(--magenta);
+  margin-bottom: 25px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip {
+  background: #2a0033;
+  border: 2px solid var(--magenta);
+  color: var(--magenta);
+  padding: 10px 18px;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.chip:hover {
+  background: var(--magenta);
+  color: #1a0022;
+}
+
+.mode {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 30px;
+  margin-bottom: 25px;
+  border: 1px solid #ff00ff33;
+}
+
+.mode-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.mode-title {
+  font-size: 1.7rem;
+  color: var(--magenta);
+}
+
+.scene {
+  background: #1a0022;
+  padding: 20px;
+  border-radius: 12px;
+  border-left: 4px solid var(--magenta);
+  margin-top: 20px;
+  font-style: italic;
+  color: #ddd;
+}
+
+footer {
+  text-align: center;
+  margin-top: 80px;
+  opacity: 0.7;
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <!-- HERO -->
-        <div class="hero">
-            <div style="font-size: 3.5rem; margin-bottom: 10px;">🌱</div>
-            <h1>Pressure Presets</h1>
-            <h2 class="tagline">for Living Characters</h2>
-            
-            <p class="description">
-                Power is taken. Loyalties shift. <span style="color:#00ffff">Secrets change everything.</span>
-            </p>
-            
-            <p class="description">
-                Throw these wild combinations of social and emotional forces into your simulations and watch the drama spark, twist, and explode into life.
-            </p>
-        </div>
+<div class="container">
 
-        <!-- CORE PRESSURES -->
-        <div class="section">
-            <h2 class="section-title">🌟 Core Pressures — the electric sparks</h2>
-            <div class="chips">
-                <div class="chip">friendship</div>
-                <div class="chip">trust</div>
-                <div class="chip">curiosity</div>
-                <div class="chip">protectiveness</div>
-                <div class="chip">jealousy</div>
-                <div class="chip">rivalry</div>
-                <div class="chip">attraction</div>
-                <div class="chip">seduction</div>
-                <div class="chip">teasing</div>
-            </div>
-        </div>
+  <!-- HERO -->
+  <div class="hero">
+    <div style="font-size: 3.5rem; margin-bottom: 10px;">🌱</div>
+    <h1>Pressure Presets</h1>
+    <h2 class="tagline">for Living Characters</h2>
+    <p class="description">Power is taken. Loyalties shift. <span style="color:#00ffff">Secrets change everything.</span></p>
+    <p class="description">Throw these wild combinations of social and emotional forces into your simulations and watch the drama spark, twist, and explode into life.</p>
+  </div>
 
-        <!-- MODES -->
-        <div class="section">
-            <h2 class="section-title">⚡ Preset Modes — pick a flavor of chaos</h2>
-            
-            <div class="mode">
-                <div class="mode-header">
-                    <span style="font-size: 2rem;">🎭</span>
-                    <h3 class="mode-title">Drama & Tension</h3>
-                </div>
-                <p>Heart-pounding conflicts. Shifting alliances. Emotional fireworks.</p>
-                <div class="chips">
-                    <div class="chip">jealousy</div>
-                    <div class="chip">betrayal</div>
-                    <div class="chip">suspicion</div>
-                    <div class="chip">envy</div>
-                    <div class="chip">rivalry</div>
-                </div>
-                <div class="scene">
-                    A whispered rumor at the dinner table turns into a thrown glass. By midnight, two best friends aren't speaking and a third is texting the wrong person on purpose.
-                </div>
-            </div>
-
-            <div class="mode">
-                <div class="mode-header">
-                    <span style="font-size: 2rem;">💕</span>
-                    <h3 class="mode-title">Romance & Connection</h3>
-                </div>
-                <p>Slow burns, deep bonds, and feelings that hit hard.</p>
-                <div class="chips">
-                    <div class="chip">attraction</div>
-                    <div class="chip">seduction</div>
-                    <div class="chip">protectiveness</div>
-                    <div class="chip">longing</div>
-                </div>
-            </div>
-        </div>
-
-        <footer style="text-align: center; margin-top: 60px; opacity: 0.7;">
-            Living Characters — Chaos. Drama. Connection. Betrayal. Love. Power.<br>
-            The stories they create. The world they shape.
-        </footer>
+  <!-- CORE PRESSURES -->
+  <div class="section">
+    <h2 class="section-title">🌟 Core Pressures — the electric sparks</h2>
+    <div class="chips">
+      <div class="chip">friendship</div>
+      <div class="chip">trust</div>
+      <div class="chip">curiosity</div>
+      <div class="chip">protectiveness</div>
+      <div class="chip">jealousy</div>
+      <div class="chip">rivalry</div>
+      <div class="chip">attraction</div>
+      <div class="chip">seduction</div>
+      <div class="chip">teasing</div>
     </div>
+  </div>
+
+  <!-- MODES -->
+  <div class="section">
+    <h2 class="section-title">⚡ Preset Modes — pick a flavor of chaos</h2>
+
+    <div class="mode">
+      <div class="mode-header">
+        <span style="font-size: 2rem;">🎭</span>
+        <h3 class="mode-title">Drama & Tension</h3>
+      </div>
+      <p>Heart-pounding conflicts. Shifting alliances. Emotional fireworks.</p>
+      <div class="chips">
+        <div class="chip">jealousy</div>
+        <div class="chip">betrayal</div>
+        <div class="chip">suspicion</div>
+        <div class="chip">envy</div>
+        <div class="chip">rivalry</div>
+      </div>
+      <div class="scene">A whispered rumor at the dinner table turns into a thrown glass. By midnight, two best friends aren't speaking and a third is texting the wrong person on purpose.</div>
+    </div>
+
+    <div class="mode">
+      <div class="mode-header">
+        <span style="font-size: 2rem;">💕</span>
+        <h3 class="mode-title">Romance & Connection</h3>
+      </div>
+      <p>Slow burns, deep bonds, and feelings that hit hard.</p>
+      <div class="chips">
+        <div class="chip">attraction</div>
+        <div class="chip">seduction</div>
+        <div class="chip">protectiveness</div>
+        <div class="chip">longing</div>
+      </div>
+    </div>
+
+    <div class="mode">
+      <div class="mode-header">
+        <span style="font-size: 2rem;">💀</span>
+        <h3 class="mode-title">Chaos & High Drama</h3>
+      </div>
+      <p>Everything spirals into unpredictable intensity.</p>
+      <div class="chips">
+        <div class="chip">confrontation</div>
+        <div class="chip">argument</div>
+        <div class="chip">suspicion</div>
+        <div class="chip">narcissism</div>
+        <div class="chip">overreaction</div>
+        <div class="chip">paranoia</div>
+        <div class="chip">betrayal</div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    Living Characters — Chaos. Drama. Connection. Betrayal. Love. Power.<br>
+    The stories they create. The world they shape.<br><br>
+    <strong>PRESS · MIX · EXPLODE</strong>
+  </footer>
+
+</div>
 </body>
 </html>
