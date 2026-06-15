@@ -40,9 +40,9 @@ Living Characters creates autonomous social threads between NPCs so your story w
 
 **Without Living Characters**
 
-```text
-Jessica enters the room.
 
-Everyone looks at Jessica.
+Frank enters the room.
 
-Everyone waits for Jessica to do something.
+Everyone looks at Frank.
+
+Everyone waits for Frank to do something.
