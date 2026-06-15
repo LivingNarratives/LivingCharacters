@@ -9,7 +9,7 @@
 **Living Characters doesn't write stories.  
 It gives characters reasons to create stories themselves.**
 
-[Installation](./Installation) • [Configuration](./configuration.md) • [Pressure Presets Website](https://LivingNarratives.github.io/LivingCharacters) • [License](./LICENSE)
+[Installation](./installation.md) • [Configuration](./configuration.md) • [Pressure Presets Website](https://LivingNarratives.github.io/LivingCharacters) • [License](./LICENSE)
 
 </div>
 
