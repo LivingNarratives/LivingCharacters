@@ -4,7 +4,7 @@
 
 **Chaos. Drama. Connection. Betrayal. Love. Power.**
 
-An autonomous social simulation where characters live, fuck, betray, love, and evolve their own chaotic dramas.
+An autonomous social simulation where characters live, betray, love, and evolve their own chaotic dramas.
 
 [Pressure Presets Website](https://LivingNarratives.github.io/LivingCharacters) 
 
