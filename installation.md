@@ -1,22 +1,24 @@
 # Installation
 
+Follow these steps to install Living Characters in your AI Dungeon scenario.
+
+---
+
 ## Step 1: Open Your Scenario
 
 1. Go to your **Scenarios** page in AI Dungeon.
 2. Find the scenario you want to use with Living Characters.
 3. Click the **three dots (...)** on the scenario card.
-4. Click **Edit**.
+4. Select **Edit**.
 
 ---
 
 ## Step 2: Open the Details Tab
 
-1. Click the **Details** tab at the top of the scenario editor.
-2. Scroll all the way to the bottom of the page.
+1. In the scenario editor, click the **Details** tab at the top.
+2. Scroll all the way to the bottom.
 
-You should see a section called:
-
-**Scripting**
+You will see a section called **Scripting**.
 
 ---
 
@@ -25,14 +27,14 @@ You should see a section called:
 1. Turn on **Scripts Enabled**.
 2. Click **Edit Scripts**.
 
-This will open the AI Dungeon script editor.
+This opens the AI Dungeon script editor.
 
 ---
 
 ## Step 4: Install the Living Characters Library
 
-1. Open the **Library** tab.
-2. Copy the entire Living Characters library script.
+1. Go to the **Library** tab.
+2. Copy the full Living Characters library script.
 3. Paste it into the Library section.
 4. Save your changes.
 
@@ -40,7 +42,8 @@ This will open the AI Dungeon script editor.
 
 ## Step 5: Install the Context Modifier
 
-Open the **Context** tab and paste:
+1. Go to the **Context** tab.
+2. Paste the following code:
 
 ```javascript
 const modifier = (text) => {
@@ -55,7 +58,8 @@ modifier(text);
 
 ## Step 6: Install the Output Modifier
 
-Open the **Output** tab and paste:
+1. Go to the **Output** tab.
+2. Paste the following code:
 
 ```javascript
 const modifier = (text) => {
@@ -68,11 +72,12 @@ modifier(text);
 
 ---
 
-## Step 7: Optional Input Modifier
+## Step 7: (Optional) Install the Input Modifier
 
-The Input modifier is optional.
+The Input modifier is optional but recommended for full functionality.
 
-Open the **Input** tab and paste:
+1. Go to the **Input** tab.
+2. Paste the following code:
 
 ```javascript
 const modifier = (text) => {
@@ -85,32 +90,27 @@ modifier(text);
 
 ---
 
-## Step 8: Create a Configuration Story Card
+## Step 8: Create the Configuration Story Card
 
-Create a Story Card named:
+Create a new Story Card with the exact name:
 
-```text
-LIVING CHARACTERS CONFIG
-```
+**LIVING CHARACTERS CONFIG**
 
-This card controls:
-
-* Character roster
-* Pressures
-* Life Card interval
-* Scene relevance settings
-* Maximum active Life Cards
-* Other Living Characters options
+This card controls important settings like:
+- Character roster
+- Pressures
+- Life Card interval
+- Maximum active Life Cards
+- Scene relevance
 
 ---
 
-## Step 9: Configure Living Characters
+## Step 9: Configure Your Settings
 
 Add your character roster and settings to the configuration card.
 
-Example:
-
-```text
+**Example:**
+```
 PROTAGONIST_NAME: Jessica
 
 CHARACTERS:
@@ -142,20 +142,13 @@ tension
 
 ## Step 10: Start Playing
 
-Start your scenario normally.
+Start your scenario as normal.
 
-Living Characters will automatically create Life Cards that generate:
+Living Characters will automatically generate Life Cards that create:
+- Friendships and rivalries
+- Attraction and jealousy
+- Arguments and trust-building
+- Long-term relationship arcs
+- Emergent character stories
 
-* Friendships
-* Rivalries
-* Attraction
-* Jealousy
-* Arguments
-* Trust
-* Social drama
-* Long-term relationship arcs
-* Emergent character stories
-
-No additional player input is required.
-
-Characters will gradually develop their own relationships and storylines as the adventure progresses.
+No extra input is required from you. The characters will naturally develop their own relationships and storylines as you play.
