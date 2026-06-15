@@ -1,4 +1,6 @@
-![Living Characters](https://raw.githubusercontent.com/LivingNarratives/LivingCharacters/main/promo-collage.jpg)
+<p align="center">
+  <img src="images/LivingCharacters.png" alt="Living Characters" width="100%">
+</p>
 
 <div align="center">
 
