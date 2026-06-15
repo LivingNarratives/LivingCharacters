@@ -62,7 +62,7 @@ Jessica enters the room.
 Everyone looks at Jessica.
 
 Everyone waits for Jessica to do something.
-```
+
 
 With Living Characters:
 Greg enters the room.
@@ -74,7 +74,7 @@ Elizabeth keeps getting distracted whenever Tristan speaks.
 Jax quietly judges everyone from across the room.
 
 Sydney is still angry about something that happened several scenes ago.
-```
+
 
 The player enters an existing story instead of creating every story themselves.
 
@@ -109,7 +109,7 @@ Recommended configuration:
 SCENE_RELEVANCE: off
 MAX_ACTIVE_CARDS: 2
 LIFE_CARD_INTERVAL: 10-15
-```
+
 
 ### Hearthfire
 
@@ -123,7 +123,7 @@ Recommended configuration:
 SCENE_RELEVANCE: strict
 MAX_ACTIVE_CARDS: 1
 LIFE_CARD_INTERVAL: 15-20
-```
+
 
 ### Gemma 4 31B
 
@@ -136,7 +136,7 @@ Supported
 Recommended configuration:
 SCENE_RELEVANCE: strict
 LIFE_CARD_INTERVAL: 15
-```
+
 ### Deepseek V4 Flash
 
 Supported
