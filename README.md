@@ -1,9 +1,14 @@
 # LivingCharacters
+
+Living Characters
+
+AI Dungeon NPCs often become fixated on the player, causing the world to feel static and reactive.
+
+Living Characters creates autonomous social threads between NPCs, allowing friendships, rivalries, attraction, jealousy, gossip, grudges, and drama to develop without direct player involvement.
+
+The result is a world where characters continue living their own lives instead of waiting for the protagonist to act.
+
 Autonomous social simulation system that creates evolving relationships, rivalries, drama, and emergent story threads for AI Dungeon.
-
-Living Characters creates evolving relationships, rivalries, drama, friendships, attraction, conflict, and long-term social storylines between NPCs.
-
-Unlike traditional story cards, characters develop their own ongoing narratives that continue influencing the world around them.
 
 ## Known Model Behaviors
 
