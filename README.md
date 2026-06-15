@@ -1,4 +1,4 @@
-![Living Characters](promo-collage.jpg)
+![Living Characters](https://raw.githubusercontent.com/LivingNarratives/LivingCharacters/main/promo-collage.jpg)
 
 # Living Characters
 
@@ -6,6 +6,6 @@
 
 An autonomous social simulation where characters live, betray, love, and evolve their own chaotic dramas.
 
-[Pressure Presets Website](https://LivingNarratives.github.io/LivingCharacters) 
+[Pressure Presets Website](https://LivingNarratives.github.io/LivingCharacters)
 
 The stories they create. The world they shape.
