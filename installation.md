@@ -108,16 +108,11 @@ This card controls important settings like:
 - Maximum active Life Cards
 - Scene relevance
 
-If you use Thought Cards, also turn **Optimized Context** off in AI Dungeon.
-
-Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
-Disable Optimized Context when using Thought Cards.
-
 ---
 
 ## Step 9: Configure Your Settings
 
-Add your character roster and settings to the configuration card.
+Add your Life Card roster and settings to **LIVING CHARACTERS CONFIG**.
 
 **Example:**
 ```
@@ -162,6 +157,21 @@ Winter
 ```
 
 Do not add `Characters:` as a character name.
+
+---
+
+## Optional: Configure Thought Cards
+
+Thought Cards use a separate Story Card named exactly:
+
+**THOUGHT CARDS CONFIG**
+
+Thought Cards are optional and off by default. They do not affect Life Cards and do not enter story context.
+
+Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
+Disable Optimized Context when using Thought Cards.
+
+See [Configuration](./configuration.md) for the full Thought Cards setup example.
 
 ---
 
