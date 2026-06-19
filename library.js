@@ -1,9 +1,21 @@
 /*
 LIVING CHARACTERS - AUTONOMOUS SOCIAL ENGINE
+A LivingNarratives project. Everything in this file is part of Living Characters.
 
 Docs, install, configuration, model tips, pressure presets, and troubleshooting:
 https://github.com/LivingNarratives/LivingCharacters
 (GitHub is the single source of truth -- always use it for the current version.)
+
+This file contains TWO independent systems that belong to Living Characters:
+  1. Life Cards   - the autonomous NPC social-pressure engine (the bulk of this file).
+  2. Thought Cards- optional, player-facing thought journals ("Name - Thoughts"; a
+                    temporary 💭 marks the card that was just updated).
+                    Thought Cards are NOT brain cards and NOT memory: they never enter
+                    story context, are never read by the AI narrator, and never affect
+                    behavior, Life Card creation, targeting, pressure, momentum, or any
+                    story logic. The system only asks the model for a thought, captures
+                    it, and stores it for the player to read later. See the "THOUGHT
+                    CARD SYSTEM" module further down for full details.
 
 Paste this whole block in: LIBRARY
 
@@ -36,7 +48,7 @@ function LivingCharacters(hook, hookText) {
   "use strict";
 
   const CFG = {
-    VERSION: "2.25-living-characters-2026-06-15",
+    VERSION: "2.53-living-characters-2026-06-19",
 
     // All cast / protagonist / pressures / pacing come from the editable config
     // Story Card below. No scenario-specific names live in engine logic.
@@ -66,9 +78,13 @@ function LivingCharacters(hook, hookText) {
     AUTONOMY_ENABLED: true,
     AUTONOMY_MAX_PENDING_AGE: 1,
 
-    // Dormancy cadence: threads age toward dormant on this turn interval.
-    THREAD_REMINDER_EVERY: 5,
+    // Internal timing constants (NOT exposed on the public config card -- adjust here if
+    // needed). Dormancy cadence: threads age toward dormant on this turn interval.
+    THREAD_REMINDER_EVERY: 7,   // slower aging so cards do not burn out too quickly
     THREAD_REMINDER_MAX: 3,
+    // Write-back checkpoint cadence: how often the LC_MEMORY write-back is offered.
+    // INDEPENDENT of dormancy -- it never ages cards or affects lifespan.
+    CHECKPOINT_EVERY: 3,        // more frequent chances for Life Cards to develop
 
     // Which active Life Cards are injected into context:
     //   "strict" - only scene-relevant cards (an involved NPC is present)
@@ -114,6 +130,39 @@ function LivingCharacters(hook, hookText) {
     // the protagonist always counts as in-scene so protagonist-targeted threads are
     // not disadvantaged. Set false for third-person stories that name the protagonist.
     PROTAGONIST_ALWAYS_PRESENT: true,
+
+    // How often NPC Life Cards TARGET the protagonist. This is a TARGET-side
+    // selection bias ONLY -- it does NOT let the protagonist OWN a Life Card and
+    // never has the narrator author the player's private thoughts/interiority.
+    //   "off"    - protagonist is excluded from target selection (pure NPC-to-NPC)
+    //   "normal" - default; protagonist can be targeted with no special weighting
+    //   "high"   - protagonist gets extra target weight (~3x an NPC); NPC-to-NPC still happens
+    //   "always" - new cards target the protagonist when legal; safe fallback otherwise
+    // If no PROTAGONIST_NAME is configured, every mode degrades safely to "normal".
+    PROTAGONIST_INVOLVEMENT: "normal",
+
+    // ---- Thought Card system (SEPARATE from Life Cards) --------------------
+    // Player-facing thought journals. Thought Cards never enter context, are never
+    // read by the AI, and never affect Life Card logic. Own config card, own state.
+    THOUGHT_CONFIG_CARD_TITLE: "THOUGHT CARDS CONFIG",
+    THOUGHT_CONFIG_CARD_KEY: "living-thoughts-config",
+    THOUGHT_CONFIG_CARD_TYPE: "Config",
+    // Title format is character-first for easy scanning. Base title: "Name - Thoughts".
+    // The 💭 is a TEMPORARY "recently updated" marker prepended to the title (see below),
+    // NOT a permanent part of it -- so the player can see which card just changed.
+    THOUGHT_CARD_TITLE_SUFFIX: " - Thoughts",
+    THOUGHT_MARKER: "💭",            // temporary "new thought / recently updated" title marker
+    THOUGHT_MARKER_TURNS: 3,         // turns the 💭 marker stays before it clears
+    THOUGHT_CARD_KEY_PREFIX: "lc-thoughts:",                // non-matching key -> never injected (UNCHANGED)
+    THOUGHT_CARD_TYPE: "Custom",
+    THOUGHTS_ENABLED_DEFAULT: false,    // opt-in; off by default
+    THOUGHT_INTERVAL_DEFAULT: 5,        // turns between thought attempts
+    THOUGHT_CHANCE_DEFAULT: 50,         // % chance per eligible turn
+    MAX_THOUGHTS_DEFAULT: 10,           // HARDCODED per-character cap (not a user config option)
+    // Default is "scene": a character only gets a thought when they are actually in the
+    // current scene. No silent fallback to the roster (that is the opt-in "roster" mode).
+    THOUGHT_SCENE_MODE_DEFAULT: "scene", // scene | recent | roster
+    THOUGHT_SCENE_TIGHT_CHARS: 700,     // "scene" mode: how many trailing chars count as the CURRENT scene
 
     // Fallback pressures, used ONLY if the config card lists none. Generic and
     // scenario-agnostic; users override these in the config card's PRESSURES.
@@ -185,14 +234,19 @@ function LivingCharacters(hook, hookText) {
       "3",
       "",
       "MAX_ACTIVE_CARDS:",
-      "2"
+      "2",
+      "",
+      "PROTAGONIST_INVOLVEMENT:",
+      "normal",
+      "Options: off | normal | high | always"
     ].join("\n");
   }
 
   // The character roster lives in the config card's NOTES (description).
   function defaultConfigNotes() {
     return [
-      "( Add one character name per line below. See GitHub for help. )"
+      "( Add one character name per line below. See GitHub for help. )",
+      "Characters:"
     ].join("\n");
   }
 
@@ -222,8 +276,8 @@ function LivingCharacters(hook, hookText) {
     );
   }
 
-  function parseConfigText(text) {
-    const KEYS = ["protagonist_name", "characters", "pressures", "life_card_interval", "social_activity", "target_cooldown", "max_active_cards", "scene_relevance_mode", "scene_relevance", "trigger_on_target", "force_active_card_trigger", "protagonist_always_present"];
+  function parseConfigText(text, keysOverride) {
+    const KEYS = keysOverride || ["protagonist_name", "characters", "pressures", "life_card_interval", "social_activity", "target_cooldown", "max_active_cards", "scene_relevance_mode", "scene_relevance", "trigger_on_target", "force_active_card_trigger", "protagonist_always_present", "protagonist_involvement"];
     const lines = String(text || "").replace(/\r/g, "").split("\n");
     const sections = {};
     let current = "";
@@ -343,6 +397,20 @@ function LivingCharacters(hook, hookText) {
     ).toLowerCase().replace(/\s+/g, "");
     if (sceneMode !== "strict" && sceneMode !== "off" && sceneMode !== "hybrid") sceneMode = CFG.SCENE_RELEVANCE_MODE;
 
+    // Two INDEPENDENT cadences (decoupled), hardwired internally and NOT exposed on the
+    // public config card. Adjust the CFG constants if needed.
+    //   CHECKPOINT_EVERY      -> write-back (LC_MEMORY) opportunity only. No lifespan effect.
+    //   THREAD_REMINDER_EVERY -> dormancy/reminder aging only (card lifespan).
+    const checkpointEvery = CFG.CHECKPOINT_EVERY;
+    const threadReminderEvery = CFG.THREAD_REMINDER_EVERY;
+
+    // Protagonist involvement: off | normal | high | always (validated; default normal).
+    // TARGET-side bias only -- never makes the protagonist an owner. With no protagonist
+    // configured the bias is meaningless, so it degrades safely to "normal".
+    let involvement = String(configFirst(sections, "protagonist_involvement", CFG.PROTAGONIST_INVOLVEMENT)).toLowerCase().replace(/\s+/g, "");
+    if (involvement !== "off" && involvement !== "normal" && involvement !== "high" && involvement !== "always") involvement = CFG.PROTAGONIST_INVOLVEMENT;
+    if (!protagonist) involvement = "normal";
+
     return {
       protagonist: protagonist,
       characters: characters,
@@ -356,7 +424,10 @@ function LivingCharacters(hook, hookText) {
       sceneRelevanceMode: sceneMode,
       triggerOnTarget: triggerOnTarget,
       forceActiveCardTrigger: forceActiveCardTrigger,
-      protagonistAlwaysPresent: protagonistAlwaysPresent
+      protagonistAlwaysPresent: protagonistAlwaysPresent,
+      protagonistInvolvement: involvement,
+      checkpointEvery: checkpointEvery,
+      threadReminderEvery: threadReminderEvery
     };
   }
 
@@ -552,6 +623,14 @@ function LivingCharacters(hook, hookText) {
     if (memory.target && !cleanText(bucket.target)) bucket.target = cleanName(memory.target);
     if (memory.pressure && !cleanText(bucket.pressure)) bucket.pressure = cleanText(memory.pressure);
     if (memory.momentum && !cleanText(bucket.momentum)) bucket.momentum = cleanText(memory.momentum);
+    // Optional first-person thought: update only when the narrator supplies a non-empty
+    // value; never blank an existing thought. Display-only, never used in engine logic.
+    // NOTE: this legacy OWNER_THOUGHT lives on the Life Card and is fed by the LC_MEMORY
+    // write-back (XML-style block authored by the narrator). It is SEPARATE from the
+    // Thought Card system: Thought Cards do NOT use LC_MEMORY, XML, or narrator write-back
+    // -- they use the leading-parenthetical capture and store to their own "💭 Thoughts"
+    // cards. The two are independent; see the THOUGHT CARD SYSTEM module below.
+    if (cleanText(memory.owner_thought)) bucket.ownerThought = cleanText(memory.owner_thought);
 
     const status = cleanText(memory.status).toLowerCase();
     bucket.status = CFG.STATUS_VALUES.indexOf(status) !== -1 ? status : (bucket.status || "active");
@@ -584,11 +663,13 @@ function LivingCharacters(hook, hookText) {
     const pressure = cleanText(bucket.pressure) || "unspoken social pressure";
     const momentum = cleanText(bucket.momentum) || "low";
     const occurrence = cleanText(bucket.event);
+    const ownerThought = cleanText(bucket.ownerThought);
     // Seedling shows only while the thread is active; dropped when dormant/resolved.
     const statusLine = lifeStatusIsActive(status) ? (CFG.SEEDLING + " " + status) : status;
     // Compact one-line-per-field format (no blank lines) to keep Story Cards small.
     const out = ["TARGET: " + target, "PRESSURE: " + pressure];
     if (occurrence) out.push("OCCURRENCE: " + occurrence); // only if narrator authored it
+    if (ownerThought) out.push("OWNER_THOUGHT: " + ownerThought); // LC_MEMORY-fed (legacy)
     out.push("MOMENTUM: " + momentum, "STATUS: " + statusLine);
     return out.join("\n");
   }
@@ -820,6 +901,7 @@ function LivingCharacters(hook, hookText) {
       "lastThreadReminderTurn: " + (cg.lastThreadReminderTurn || 0),
       "activeLifeCards/cap: " + activeLife + "/" + LC.maxActive,
       "sceneMode: " + LC.sceneRelevanceMode + " (" + (LC.sceneRelevanceMode === "off" ? "scene IGNORED" : LC.sceneRelevanceMode === "strict" ? "scene ENFORCED" : "scene PREFERRED") + ")",
+      "protagonistInvolvement: " + LC.protagonistInvolvement + " (target-side bias; protagonist never owns a card)" + (LC.protagonist ? "" : " [no protagonist set -> normal]"),
       "sceneRelevance applied -> seed: " + (cg.seedSource === "skipped" ? "enforced(skipped)" : cg.seedSource === "sceneActors" ? "enforced" : "ignored") + " | inject: " + (LC.sceneRelevanceMode === "off" ? "ignored" : LC.sceneRelevanceMode === "strict" ? "enforced" : "preferred"),
       "injected " + (cg.lastActiveSelected || 0) + " of " + activeLife + " active | sceneSource: " + (cg.sceneSource || "?"),
       "sceneActors" + (LC.protagonistAlwaysPresent && LC.protagonist ? " (protagonist always-on)" : "") + ": " + ((cg.sceneActors && cg.sceneActors.length) ? cg.sceneActors.join(", ") : "(none)"),
@@ -836,7 +918,7 @@ function LivingCharacters(hook, hookText) {
       CFG.DEBUG_CARD_TYPE,
       CFG.DEBUG_CARD_KEY,
       entry,
-      "Diagnostic only. Set CFG.DEBUG = false to disable."
+      "Diagnostic only. Set DEBUG = false to disable."
     );
   }
 
@@ -861,6 +943,39 @@ function LivingCharacters(hook, hookText) {
     return unique([p].concat(npcRoster())).filter(function(name) {
       return name && name !== actor;
     });
+  }
+
+  // Choose a TARGET for a given (already-selected NPC) owner, applying the
+  // PROTAGONIST_INVOLVEMENT bias. This only ever influences who is TARGETED; owner
+  // selection (actorPool) and the never-an-owner rule are untouched. With no
+  // protagonist, LC.protagonistInvolvement is forced to "normal" upstream, so this
+  // behaves exactly like the original choose(targetPool(actor)).
+  function chooseTarget(actor) {
+    const p = playerName();
+    const mode = LC.protagonistInvolvement || "normal";
+    const pool = targetPool(actor);
+    if (!pool.length) return "";
+    const protagInPool = !!p && pool.indexOf(p) !== -1;
+
+    if (mode === "off") {
+      // Exclude the protagonist absolutely. If no NPC target remains, choose([])
+      // returns "" and the caller safely skips the card (never falls back to the
+      // protagonist) -- "off" means the protagonist is never targeted.
+      const npcOnly = pool.filter(function(n) { return n !== p; });
+      return choose(npcOnly);
+    }
+    if (mode === "always" && protagInPool) {
+      // Use the protagonist as target when legal. (Owner stays an NPC; cooldown and
+      // scene relevance are still enforced by the surrounding selection logic.)
+      return p;
+    }
+    if (mode === "high" && protagInPool) {
+      // Protagonist gets ~3x the weight of a single NPC; NPC-to-NPC still happens.
+      const pairs = pool.map(function(n) { return [n, n === p ? 3 : 1]; });
+      return weightedChoice(pairs);
+    }
+    // normal (and high/always with no eligible protagonist target): current behavior.
+    return choose(pool);
   }
 
   function cardReason(actor, target, category) {
@@ -1011,16 +1126,20 @@ function LivingCharacters(hook, hookText) {
         const anchorCanOwn = fullActors.indexOf(anchor) !== -1;  // eligible as owner?
         const otherOwners = fullActors.filter(function(n) { return n !== anchor; });
         // Vary which side is present: owner-present vs target-present.
-        const anchorAsOwner = anchorCanOwn && (otherOwners.length === 0 || Math.random() < 0.5);
+        // For "always", prefer the in-scene NPC as OWNER so chooseTarget can make the
+        // protagonist the TARGET while keeping the card scene-relevant (owner in scene).
+        // If the anchor cannot own, we fall through to the NPC->anchor branch below
+        // (a safe NPC-to-NPC fallback that still respects scene relevance).
+        const anchorAsOwner = anchorCanOwn && (LC.protagonistInvolvement === "always" || otherOwners.length === 0 || Math.random() < 0.5);
         if (anchorAsOwner) {
           actor = anchor;
-          target = choose(targetPool(actor));
+          target = chooseTarget(actor);
         } else if (otherOwners.length) {
           target = anchor;
           actor = choose(otherOwners);
         } else if (anchorCanOwn) {
           actor = anchor;
-          target = choose(targetPool(actor));
+          target = chooseTarget(actor);
         }
       }
       if ((!actor || !target) && mode === "strict") {
@@ -1042,7 +1161,7 @@ function LivingCharacters(hook, hookText) {
         return null;
       }
       actor = choose(fullActors);
-      target = choose(targetPool(actor));
+      target = chooseTarget(actor);
     }
     if (!target) {
       cg.seedSource = seedSource;
@@ -1091,11 +1210,12 @@ function LivingCharacters(hook, hookText) {
     return "\n\n<LC_PRIVATE>\n" +
       "New social pressure: " + seed.actor + " feels " + (seed.pressure || seed.category) +
       " toward " + seed.target + ". Let it shape behavior naturally; do not state the label.\n" +
-      "If something concrete happens, you may add one hidden block:\n" +
+      "If something concrete happens with " + seed.actor + ", record it after the story on its own lines. The system removes it before the player sees it, so it will not break the scene. Minimum is OWNER + OCCURRENCE; OWNER_THOUGHT and STATUS are optional (STATUS defaults to active):\n" +
       "<LC_MEMORY>\n" +
       "OWNER: " + seed.actor + "\n" +
       "OCCURRENCE: one sentence of what happened\n" +
-      "STATUS: active | resolved\n" +
+      "OWNER_THOUGHT: (optional) brief first-person or close-third thought from " + seed.actor + "\n" +
+      "STATUS: (optional) active | resolved\n" +
       "</LC_MEMORY>\n" +
       "</LC_PRIVATE>";
   }
@@ -1183,19 +1303,61 @@ function LivingCharacters(hook, hookText) {
     }
     cg.lastFreshThreads = fresh.map(function(c) { return c.owner; });
 
-    let body = "ACTIVE LIFE THREADS\n";
+    // Write-back is a periodic CHECKPOINT, shown only on reminder/surface turns (the
+    // same cadence as advanceThreadDormancy) -- NOT every turn. Framed as a look-back so
+    // a development from a recent turn can still be recorded here. Conditional only:
+    // never required, no no-op blocks (the owner && event gate still drops empty ones).
+    const checkpointTurn = isCheckpointTurn();
+    if (checkpointTurn) cg.lastCheckpointTurn = cg.turn; // stamp the checkpoint's OWN counter
+
+    // Forceful, active framing (Dynamic Large responds better when the card reads as a
+    // live scene driver, not background info). Not subtle.
+    let body = "ACTIVE LIFE THREADS\n" +
+      "Use these NOW. Each active life thread below is influencing the CURRENT story and affecting this scene right now -- let them drive the characters' behavior, choices, dialogue, and reactions.\n";
+
+    // PRIMARY: the Life Card details lead. This is story-driving context the narrator
+    // should USE in the prose. (Front-loading the write-back task made the model
+    // deprioritize the card, so the card and its nudge always come first now.)
     if (fresh.length) {
       body += "\nFRESH PRESSURE (new this turn -- treat as CURRENT and let it shape THIS scene):\n" +
-        fresh.map(renderEntry).join("\n\n") + "\n" +
-        "Use this as current social pressure now. In your next response, reflect it if at all narratively possible through behavior, a glance, gossip, awkwardness, tension, avoidance, direct interaction, or a small concrete story consequence. Do not state the pressure label.\n";
+        fresh.map(renderEntry).join("\n\n") + "\n";
     }
     if (ongoing.length) {
       body += "\nONGOING THREADS:\n" + ongoing.map(renderEntry).join("\n\n") + "\n";
     }
-    // off/hybrid: keep the off-screen surfacing nudge that capable models use.
+
+    // PRIMARY: single forceful story-driver nudge. Not subtle.
     body += (mode === "strict")
-      ? "Let these shape behavior naturally when they fit; do not state the labels or force them.\n"
-      : "These pressures keep developing even off-screen -- let them surface through gossip, mood, attitudes, and reactions even when the characters are not present. Keep it subtle; do not state the labels.\n";
+      ? "\nUse these now. Each active life thread is affecting this scene -- let it create visible consequences: dialogue, gossip, tension, attraction, avoidance, conflict, reactions, choices, relationship shifts. Do not state the labels.\n"
+      : "\nUse these now. These pressures are live and influencing the current story even when the characters are off-screen -- let them surface as visible consequences: dialogue, gossip, shifting moods, attitudes, alliances, tension, attraction, avoidance, conflict, reactions, choices, relationship shifts. Do not state the labels.\n";
+
+    // SECONDARY: trailing write-back, only on reminder/checkpoint turns, and visibly
+    // SEPARATED from the story context above (a divider + "does not change the story")
+    // so it reads as optional bookkeeping, never as competing with using the card.
+    // Conditional only; the owner && event gate still drops empty/no-occurrence blocks.
+    if (checkpointTurn) {
+      const triggerList = selected.map(function(c) {
+        const b = c.bucket;
+        return c.owner + " (" + (cleanText(b.pressure) || "pressure") + " toward " + (cleanText(b.target) || "someone") + ")";
+      }).join("; ");
+      body += "\n---\n" +
+        "Separate bookkeeping (does NOT change the story above, and is not part of the scene): if any active Life Card has visibly developed recently, then AFTER the story add one hidden block. Only if it actually developed -- otherwise skip it entirely. The system removes the block before the player sees it.\n" +
+        "Minimum is OWNER + one OCCURRENCE line. OWNER_THOUGHT and STATUS are optional (STATUS defaults to active).\n" +
+        "<LC_MEMORY>\n" +
+        "OWNER: an exact owner name from the list above\n" +
+        "OCCURRENCE: one sentence of what happened\n" +
+        "OWNER_THOUGHT: (optional) brief first-person or close-third thought from that owner\n" +
+        "STATUS: (optional) active | resolved\n" +
+        "</LC_MEMORY>\n" +
+        "Example (fictional -- copy the FORMAT, not these names; use an owner from above):\n" +
+        "<LC_MEMORY>\n" +
+        "OWNER: Mara\n" +
+        "OCCURRENCE: Mara cut Jonah off mid-sentence and turned her back on him.\n" +
+        "OWNER_THOUGHT: He always has to be right -- I'm done giving him the last word.\n" +
+        "STATUS: active\n" +
+        "</LC_MEMORY>\n" +
+        "Cards that may have developed: " + triggerList + ".\n";
+    }
 
     return "\n\n<LC_PRIVATE>\n" +
       (LC.forceActiveCardTrigger && CFG.ACTIVE_SHARED_TRIGGER ? CFG.ACTIVE_SHARED_TRIGGER + "\n" : "") +
@@ -1203,11 +1365,31 @@ function LivingCharacters(hook, hookText) {
       "</LC_PRIVATE>";
   }
 
-  // Dormancy progression on the THREAD_REMINDER_EVERY cadence. Counts appearances
-  // and archives threads that go stale. Injects NO context text (kept clean).
+  // True when THIS turn is a write-back CHECKPOINT turn -- on the CHECKPOINT_EVERY
+  // cadence (its OWN counter cg.lastCheckpointTurn, independent of dormancy), and only
+  // when at least one active (non-dormant/resolved) card exists. READ-ONLY: it does NOT
+  // advance the counter, age cards, or change dormancy. The caller stamps
+  // cg.lastCheckpointTurn when it actually shows the checkpoint. Does not affect lifespan.
+  function isCheckpointTurn() {
+    const cg = ensureState();
+    if ((cg.turn - (cg.lastCheckpointTurn || 0)) < (LC.checkpointEvery || CFG.CHECKPOINT_EVERY)) return false;
+    const owners = Object.keys(cg.cards || {});
+    for (let i = 0; i < owners.length; i++) {
+      const b = cg.cards[owners[i]];
+      if (!cardHasContent(b)) continue;
+      const st = cleanText(b.status).toLowerCase();
+      if (st === "resolved" || st === "dormant") continue;
+      return true;
+    }
+    return false;
+  }
+
+  // Dormancy progression on the THREAD_REMINDER_EVERY cadence (its own counter,
+  // cg.lastThreadReminderTurn). Counts appearances and archives threads that go stale.
+  // INDEPENDENT of the write-back checkpoint cadence. Injects NO context text.
   function advanceThreadDormancy() {
     const cg = ensureState();
-    if (cg.turn - (cg.lastThreadReminderTurn || 0) < CFG.THREAD_REMINDER_EVERY) return;
+    if (cg.turn - (cg.lastThreadReminderTurn || 0) < (LC.threadReminderEvery || CFG.THREAD_REMINDER_EVERY)) return;
 
     const owners = Object.keys(cg.cards || {});
     const candidates = [];
@@ -1272,7 +1454,7 @@ function LivingCharacters(hook, hookText) {
       if (idx !== -1) {
         const key = line.slice(0, idx).trim().toLowerCase();
         const value = line.slice(idx + 1).trim();
-        if (["owner", "event", "occurrence", "pressure", "momentum", "target", "status", "log"].indexOf(key) !== -1) {
+        if (["owner", "event", "occurrence", "pressure", "momentum", "target", "status", "log", "owner_thought"].indexOf(key) !== -1) {
           current = key;
           data[current] = value;
           continue;
@@ -1290,6 +1472,9 @@ function LivingCharacters(hook, hookText) {
     data.momentum = cleanText(data.momentum).toLowerCase();
     data.status = cleanText(data.status || "active").toLowerCase();
     data.log = cleanText(data.log || data.event);
+    // Optional narrator-authored first-person interior line. Display-only; the engine
+    // never reads it for targeting, pressure, momentum, status, or any logic.
+    data.owner_thought = cleanText(data.owner_thought);
     return data;
   }
 
@@ -1353,6 +1538,259 @@ function LivingCharacters(hook, hookText) {
     return out;
   }
 
+  // ==========================================================================
+  // THOUGHT CARD SYSTEM
+  // --------------------------------------------------------------------------
+  // Part of LIVING CHARACTERS, a LivingNarratives project.
+  // (https://github.com/LivingNarratives/LivingCharacters)
+  //
+  // This module belongs to Living Characters. Thought Cards are a feature of
+  // Living Characters, kept deliberately separate from the Life Card engine.
+  //
+  // WHAT THOUGHT CARDS ARE:
+  //   Player-facing thought journals. One numbered, human-readable log per
+  //   character (titled "Name - Thoughts"; a temporary 💭 marks recent updates) to read
+  //   to follow a character's emotional progression over many turns.
+  //
+  // WHAT THOUGHT CARDS ARE NOT:
+  //   - NOT memory. NOT a brain. NOT Inner Self.
+  //   - They do NOT enter the story context (the Thought Card uses a non-matching
+  //     key, so the AI Dungeon front-end never injects it).
+  //   - They are NOT read by the AI narrator.
+  //   - They do NOT affect character behavior, Life Card creation, targeting,
+  //     pressure, momentum, dormancy, selection, or any story logic.
+  //
+  // WHAT THIS MODULE DOES (the entire job):
+  //   1. ASK   - inject ONE temporary first-person parenthetical request into
+  //              context (the only thing this system ever puts in context).
+  //   2. CAPTURE- read that leading parenthetical back from the model's output
+  //              and strip it from the visible story.
+  //   3. STORE - append it (numbered) to the character's Thought Card for the
+  //              player to read later. Nothing reads it back.
+  //
+  // The PARENTHETICAL REQUEST is the only temporary instruction injected into
+  // context. The stored Thought Card itself is never injected (non-matching key).
+  // No XML, no LC_MEMORY, no write-back blocks, no detectors. Runs independently
+  // of Life Cards (a character can have thoughts with no active Life Card).
+  // ==========================================================================
+  const THOUGHT_KEYS = ["thoughts_enabled", "thought_characters", "thought_interval", "thought_formation_chance", "thought_scene_mode"];
+
+  // THOUGHT CARDS CONFIG
+  // The editable Story Card that controls the separate Thought Card system. It is
+  // distinct from the LIVING CHARACTERS CONFIG (Life Cards) card on purpose, so the
+  // two systems never share settings. Defaults below are conservative and opt-in.
+  function defaultThoughtConfigEntry() {
+    return [
+      "THOUGHT CARDS (separate from Life Cards)",
+      "",
+      "Important:",
+"Thought Cards are not compatible with AI Dungeon's Optimized Context feature.",
+"Disable Optimized Context when using Thought Cards.",
+      "",
+      "THOUGHTS_ENABLED:",
+      "false",
+      "",
+      "THOUGHT_CHARACTERS:",
+      "( one name per line )",
+      "",
+      "THOUGHT_INTERVAL:",
+      "5",
+      "",
+      "THOUGHT_FORMATION_CHANCE:",
+      "50",
+      "",
+      "THOUGHT_SCENE_MODE:",
+      "scene"
+    ].join("\n");
+  }
+
+  function ensureThoughtConfigCard() {
+    const existing = findStoryCardByKeys(CFG.THOUGHT_CONFIG_CARD_KEY) || findStoryCardByTitle(CFG.THOUGHT_CONFIG_CARD_TITLE);
+    if (existing) return existing;
+    return createOrPatchStoryCard(
+      CFG.THOUGHT_CONFIG_CARD_TITLE,
+      CFG.THOUGHT_CONFIG_CARD_TYPE,
+      CFG.THOUGHT_CONFIG_CARD_KEY,
+      defaultThoughtConfigEntry(),
+      "Thought Cards are a player-facing journal. They never enter the story context."
+    );
+  }
+
+  function buildThoughtConfig() {
+    ensureThoughtConfigCard();
+    const card = findStoryCardByKeys(CFG.THOUGHT_CONFIG_CARD_KEY) || findStoryCardByTitle(CFG.THOUGHT_CONFIG_CARD_TITLE);
+    const sections = parseConfigText(card && card.entry, THOUGHT_KEYS);
+    const enabled = toBoolOr(configFirst(sections, "thoughts_enabled", null), CFG.THOUGHTS_ENABLED_DEFAULT);
+    const characters = configList(sections, "thought_characters");
+    const interval = Math.max(1, toIntOr(configFirst(sections, "thought_interval", CFG.THOUGHT_INTERVAL_DEFAULT), CFG.THOUGHT_INTERVAL_DEFAULT));
+    const chance = Math.max(0, Math.min(100, toIntOr(configFirst(sections, "thought_formation_chance", CFG.THOUGHT_CHANCE_DEFAULT), CFG.THOUGHT_CHANCE_DEFAULT)));
+    const maxThoughts = CFG.MAX_THOUGHTS_DEFAULT; // hardcoded 10; NOT a user config option
+    // THOUGHT_SCENE_MODE: scene (default) | recent | roster. Validated; bad values ->
+    // default "scene". Thought scene relevance is SEPARATE from Life Card scene relevance:
+    // it only decides which character may get a journal entry, and must not affect Life
+    // Card targeting, pressure selection, momentum, or story logic.
+    let sceneMode = String(configFirst(sections, "thought_scene_mode", CFG.THOUGHT_SCENE_MODE_DEFAULT)).toLowerCase().replace(/\s+/g, "");
+    if (["scene", "recent", "roster"].indexOf(sceneMode) === -1) sceneMode = CFG.THOUGHT_SCENE_MODE_DEFAULT;
+    return { enabled: enabled, characters: characters, interval: interval, chance: chance, maxThoughts: maxThoughts, sceneMode: sceneMode };
+  }
+
+  // Separate state slice -- never touches chaosGoblinV2 (Life Card state).
+  function ensureThoughtState() {
+    if (!globalThis.state || typeof state !== "object") globalThis.state = {};
+    if (!state.livingThoughts || typeof state.livingThoughts !== "object") {
+      state.livingThoughts = { version: CFG.VERSION, lastThoughtTurn: 0, pendingChar: "", byChar: {}, markedChar: "", markedTurn: 0 };
+    }
+    const ts = state.livingThoughts;
+    if (!ts.byChar || typeof ts.byChar !== "object") ts.byChar = {};
+    if (typeof ts.lastThoughtTurn !== "number") ts.lastThoughtTurn = 0;
+    if (typeof ts.markedChar !== "string") ts.markedChar = "";   // 💭 "recently updated" marker
+    if (typeof ts.markedTurn !== "number") ts.markedTurn = 0;
+    return ts;
+  }
+
+  // Stable, non-matching key for lookup/recreation (UNCHANGED: lc-thoughts:name).
+  function thoughtCardToken(name) {
+    return CFG.THOUGHT_CARD_KEY_PREFIX + keyName(name);
+  }
+
+  // Character-first display title: "Name - Thoughts", with a TEMPORARY "💭 " marker
+  // prepended while the card is recently updated. The KEY (above) identifies the card,
+  // so adding/removing the marker just safely re-titles the same existing card.
+  function thoughtCardTitle(name, marked) {
+    return (marked ? CFG.THOUGHT_MARKER + " " : "") + name + CFG.THOUGHT_CARD_TITLE_SUFFIX;
+  }
+
+  // Thought Card: "Name - Thoughts" (temporary "💭 " prepended while recently updated)
+  //   Purpose:     a numbered, player-readable thought journal for one character.
+  //   Not purpose: not memory, not a brain, not context, not narrator guidance,
+  //                not a logic source.
+  // Render a character's Thought Card from the stored list. The keys are a
+  // non-matching token (CFG.THOUGHT_CARD_KEY_PREFIX + name, no plain-name trigger),
+  // so the AI Dungeon front-end never matches it against story text and the card is
+  // NEVER injected into context. Type is "Custom" purely for player-side organization.
+  function syncThoughtCard(name, TC, marked) {
+    const ts = ensureThoughtState();
+    const list = Array.isArray(ts.byChar[name]) ? ts.byChar[name] : [];
+    const lines = [];
+    for (let i = 0; i < list.length; i++) lines.push((i + 1) + ". " + list[i]);
+    const entry = lines.length ? lines.join("\n") : "(no thoughts yet)";
+    createOrPatchStoryCard(
+      thoughtCardTitle(name, !!marked), // "Name - Thoughts" (+ 💭 while recently updated)
+      CFG.THOUGHT_CARD_TYPE,
+      thoughtCardToken(name),     // stable key: lc-thoughts:name (UNCHANGED) -- re-titling is safe
+      entry,
+      ""                          // Notes left blank for release
+    );
+  }
+
+  // Append a thought (numbered) and keep only the most recent maxThoughts. No overwrite,
+  // no keys, no history beyond the capped list.
+  function appendThought(name, text, TC) {
+    const ts = ensureThoughtState();
+    name = cleanName(name);
+    text = cleanText(text);
+    if (!name || !text) return false;
+    if (!Array.isArray(ts.byChar[name])) ts.byChar[name] = [];
+    const arr = ts.byChar[name];
+    if (arr.length && arr[arr.length - 1] === text) return false; // skip exact consecutive dup
+    arr.push(text);
+    const max = (TC && TC.maxThoughts) || CFG.MAX_THOUGHTS_DEFAULT;
+    while (arr.length > max) arr.shift();
+    // Visual activity marker: 💭 moves to the card that just updated. Clear it off the
+    // previously-marked card (if a different one), then mark this one. (Also clears on a
+    // timer; see expireThoughtMarker.) Display-only -- does not touch Life Cards.
+    if (ts.markedChar && ts.markedChar !== name) syncThoughtCard(ts.markedChar, TC, false);
+    ts.markedChar = name;
+    ts.markedTurn = (ensureState().turn) || 0;
+    syncThoughtCard(name, TC, true);
+    return true;
+  }
+
+  // Clear the 💭 marker after THOUGHT_MARKER_TURNS turns so it reads as "recent" activity
+  // and comes back down on its own. Runs once per context turn; re-titles one card at most.
+  function expireThoughtMarker() {
+    const ts = ensureThoughtState();
+    if (!ts.markedChar) return;
+    const turn = (ensureState().turn) || 0;
+    if ((turn - (ts.markedTurn || 0)) >= CFG.THOUGHT_MARKER_TURNS) {
+      syncThoughtCard(ts.markedChar, buildThoughtConfig(), false); // drop the 💭
+      ts.markedChar = "";
+    }
+  }
+
+  // Candidate thought-characters for THIS turn, per THOUGHT_SCENE_MODE.
+  // Thought Cards are journals of what characters are thinking in/around the CURRENT
+  // story moment, so by default only scene-relevant characters are eligible. There is
+  // NO silent fallback to the full roster -- if nobody relevant is present, the caller
+  // generates nothing this turn (an off-screen thought feels disconnected/confusing).
+  //   scene  -> ONLY characters detected in the current scene (tight trailing window).
+  //   recent -> characters in the wider recent-scene window (current + just-mentioned).
+  //   roster -> ANY configured thought character (opt-in; intentional off-screen/"chaos"
+  //             thoughts). This is the ONLY mode that ignores scene relevance.
+  // Detection mirrors the Life Card scene detector (whole-word name match on the recent
+  // story text), but uses the THOUGHT roster and its OWN window -- fully separate from
+  // Life Card scene relevance.
+  function thoughtCandidates(TC, contextText) {
+    // Thought Cards are player-facing journals, so they should only come from
+    // scene-relevant characters. This prevents disconnected off-screen thoughts from
+    // random roster characters (e.g. a thought appearing for someone not in the scene).
+    const roster = unique(TC.characters || []);
+    if (!roster.length) return [];
+    // THOUGHT_SCENE_MODE handling:
+    //   roster -> opt-in off-screen/"chaos" mode: ANY configured thought character.
+    //             This is the ONLY mode that skips the scene-relevance gate.
+    if (TC.sceneMode === "roster") return roster;
+    const recent = recentSceneText(contextText);  // history tail (up to SCENE_SCAN_CHARS)
+    //   scene  -> tight CURRENT-scene window (default).
+    //   recent -> wider recent-scene window (current + just-mentioned).
+    const tight = recent.length > CFG.THOUGHT_SCENE_TIGHT_CHARS ? recent.slice(-CFG.THOUGHT_SCENE_TIGHT_CHARS) : recent;
+    const text = (TC.sceneMode === "recent") ? recent : tight;
+    // Fallback prevention: do NOT fall back to the full roster unless THOUGHT_SCENE_MODE
+    // is explicitly "roster". If nobody is scene-relevant, return [] and the caller makes
+    // no thought this turn -- an off-screen thought would feel disconnected.
+    return roster.filter(function(n) { return containsWholeWord(text, n); });
+  }
+
+  // Decide whether to fire a thought this turn; if so, select a character, stamp the
+  // attempt, and return the ASK string (LC_PRIVATE-wrapped) to append to context.
+  // Sets ts.pendingChar for the output hook. Independent of Life Cards.
+  function buildThoughtAsk(contextText) {
+    const ts = ensureThoughtState();
+    ts.pendingChar = "";
+    const TC = buildThoughtConfig();
+    if (!TC.enabled || !TC.characters.length) return "";
+    const turn = (ensureState().turn) || 0;
+    if ((turn - (ts.lastThoughtTurn || 0)) < TC.interval) return ""; // interval gate
+    if (randomInt(100) >= TC.chance) return "";                      // chance gate
+    const cands = thoughtCandidates(TC, contextText);               // scene-relevant only
+    if (!cands.length) return "";                                    // nobody relevant -> no thought
+    const name = choose(cands);
+    ts.pendingChar = name;
+    ts.lastThoughtTurn = turn;
+    // Simple, reliable ask: ONE leading first-person parenthetical, then the story.
+    // Parenthetical capture is the only thought mechanism -- no LC_MEMORY/XML, no fallback
+    // formats, no validation.
+    return "\n\n<LC_PRIVATE>\n" +
+      "Begin your reply with ONE short parenthetical: " + name + "'s own private thought right now, in first person (I / me / my), one sentence. Then continue the story normally. The parenthetical is hidden from the player automatically. Format: (I ...)\n" +
+      "</LC_PRIVATE>";
+  }
+
+  // Output-hook capture: ONLY when a thought was asked this turn. Captures a single
+  // LEADING parenthetical (optionally stripping a "Name:" prefix), appends it to the
+  // character's Thought Card, and strips it from the visible story. No leading
+  // parenthetical -> output untouched. Light only; never touches Life Cards.
+  function captureThought(original) {
+    const ts = ensureThoughtState();
+    const name = ts.pendingChar;
+    if (!name) return original;
+    const m = /^\s*\(([^)]*)\)/.exec(original);
+    if (!m) return original;
+    const t = cleanText(m[1]).replace(/^[A-Za-z][\w '\-]{0,30}:\s*/, "").trim();
+    if (!t) return original;
+    appendThought(name, t, buildThoughtConfig());
+    return original.slice(m[0].length); // strip the leading parenthetical only
+  }
+
   function handleOutput(rawText) {
     const original = String(rawText || "");
     const parseSource = stripSelectedBlocks(original, ["LC_PRIVATE", "LC_SEED", "LC_CARDS", "CG_PRIVATE", "CG_SEED", "CG_CARDS"]);
@@ -1379,10 +1817,14 @@ function LivingCharacters(hook, hookText) {
       maybeAutoCompleteOnscreenSeed(original);
     }
 
+    // THOUGHT CARD capture: ONLY when a thought was asked this turn (Thought system).
+    // Captures the leading parenthetical and strips it from visible text. Independent of Life Cards.
+    const visibleText = captureThought(original);
+
     syncCards();
     updateDebugCard();
-    const cleaned = stripBlocks(original);
-    return cleaned || original || " ";
+    const cleaned = stripBlocks(visibleText);
+    return cleaned || visibleText || " ";
   }
 
   function handleContext(rawText) {
@@ -1394,10 +1836,16 @@ function LivingCharacters(hook, hookText) {
     const active = buildActiveThreadsBlock();
     advanceThreadDormancy(); // dormancy progression only; injects nothing
     syncCards();
-    cg.lastActiveBlockChars = active.length;
-    cg.lastInjectChars = active.length + directive.length;
+    // Thought system (independent of Life Cards): age the 💭 marker, then decide +
+    // inject the thought ASK.
+    expireThoughtMarker();
+    const thoughtAsk = buildThoughtAsk(rawText);
     updateDebugCard();
-    return String(rawText || "").trimEnd() + active + directive;
+    // Order matches the released build: the ACTIVE LIFE THREADS block is LAST so it is the
+    // most salient thing the model reads (this is what makes Dynamic Large use the cards).
+    // The thought ASK goes BEFORE it -- it only governs how the reply STARTS, so it does
+    // not need to be last, and keeping it last was displacing the Life Cards.
+    return String(rawText || "").trimEnd() + directive + thoughtAsk + active;
   }
 
   function handleInput(rawText) {
@@ -1420,7 +1868,10 @@ function LivingCharacters(hook, hookText) {
     sceneRelevanceMode: CFG.SCENE_RELEVANCE_MODE,
     triggerOnTarget: CFG.TRIGGER_ON_TARGET,
     forceActiveCardTrigger: CFG.FORCE_ACTIVE_CARD_TRIGGER,
-    protagonistAlwaysPresent: CFG.PROTAGONIST_ALWAYS_PRESENT
+    protagonistAlwaysPresent: CFG.PROTAGONIST_ALWAYS_PRESENT,
+    protagonistInvolvement: CFG.PROTAGONIST_INVOLVEMENT,
+    checkpointEvery: CFG.CHECKPOINT_EVERY,
+    threadReminderEvery: CFG.THREAD_REMINDER_EVERY
   };
   try { LC = buildRuntimeConfig(); } catch (e) {}
 

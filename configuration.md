@@ -8,10 +8,19 @@ Create a new Story Card with that name in your AI Dungeon game.
 
 ---
 
+## Thought Card Compatibility Warning
+
+Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
+Disable Optimized Context when using Thought Cards.
+
+---
+
 ## Quick Start Example
 
 ```
 PROTAGONIST_NAME: Frank
+
+PROTAGONIST_INVOLVEMENT: normal
 
 CHARACTERS:
 Alice
@@ -32,6 +41,17 @@ MAX_ACTIVE_CARDS: 2
 SCENE_RELEVANCE: off
 ```
 
+If your version includes Thought Cards, their history is hard-limited to 10 thoughts per character. Oldest thoughts are trimmed automatically. You do not choose the thought count.
+
+For best results, keep model notes general and focus on settings. Current findings:
+
+- Dynamic Large works with Optimized Context off
+- DeepSeek V4 Flash works with Optimized Context off
+- DeepSeek V4 Pro works with Optimized Context off
+- Equinox works with Optimized Context off
+- Gemma 4 31B works with Optimized Context off
+- Atlas and Raven are cache-style models and are not compatible with the Thought Card workflow
+
 ---
 
 ## PROTAGONIST_NAME
@@ -45,12 +65,29 @@ This lets NPCs form relationships and Life Cards that involve the protagonist.
 
 ---
 
+## PROTAGONIST_INVOLVEMENT
+
+Controls how often the protagonist is allowed to participate in Living Characters threads.
+
+**Default:**
+`PROTAGONIST_INVOLVEMENT: normal`
+
+**Options:** `off | normal | high | always`
+
+Use `normal` for most scenarios.
+
+---
+
 ## CHARACTERS
 
 A list of NPCs that will participate in the social simulation.
 
 - One character per line
 - Only include characters you want in the Living Characters system
+- In the Story Card **Notes** field, use a clear label like `Characters:` above the list
+- Do not put `Characters:` on its own character line unless you actually want that text treated as a name
+
+The label is just there to help you see where the roster starts.
 
 **Example:**
 ```
@@ -104,9 +141,9 @@ How often the system tries to create new Life Cards.
 
 Maximum number of active Life Cards at once.
 
-**Recommendations by model:**
+**Simple recommendations:**
 - Dynamic Large: `2`
-- Hearthfire: `1` (Hearthfire focuses better on fewer active threads)
+- Models that benefit from tighter focus: `1`
 
 **Example:**
 `MAX_ACTIVE_CARDS: 2`
@@ -127,4 +164,10 @@ Allows off-screen social development and world progression.
 
 Requires at least one character from the Life Card to be present in the current scene.
 
-Better for Hearthfire, Gemma, and models that benefit from tighter focus.
+Better for models that benefit from tighter focus.
+
+---
+
+## Thought Card History
+
+Thought Card history is limited to 10 thoughts per character. When a character has more than 10 thoughts, the oldest thoughts are trimmed automatically. The thought count is fixed and is not chosen by the user.

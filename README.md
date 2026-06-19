@@ -1,4 +1,4 @@
-![Living Characters](https://raw.githubusercontent.com/LivingNarratives/LivingCharacters/main/LivingCharacters.png)
+![Living Characters Thought Cards Update](./ThoughtCardsUpdate.png)
 
 <div align="center">
 
@@ -32,6 +32,17 @@ Living Characters creates autonomous social threads between NPCs so your story w
 | Everyone waits for the player. | NPCs develop their own drama. |
 | Relationships reset constantly. | Life Cards preserve ongoing social threads. |
 | The world feels reactive. | The world feels alive. |
+
+---
+
+## Setup Note
+
+If you use Thought Cards, turn **Optimized Context** off in AI Dungeon.
+
+Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
+Disable Optimized Context when using Thought Cards.
+
+Thought Card history keeps the 10 most recent thoughts per character. Oldest thoughts are trimmed automatically, and there is no user setting for thought count.
 
 ---
 
