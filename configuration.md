@@ -1,21 +1,37 @@
 # Configuration Card Setup
 
-Living Characters is controlled through a **Story Card** named exactly:
+Living Characters uses **two separate Story Cards**:
+
+- **LIVING CHARACTERS CONFIG** = Life Cards
+- **THOUGHT CARDS CONFIG** = Thought Cards
+
+Keep these settings separate. Do not put Thought Card settings inside **LIVING CHARACTERS CONFIG**.
+
+---
+
+## LIVING CHARACTERS CONFIG = Life Cards
+
+This card controls **Life Cards only**.
+
+Create a Story Card named exactly:
 
 **LIVING CHARACTERS CONFIG**
 
-Create a new Story Card with that name in your AI Dungeon game.
+This card controls:
+
+- `PROTAGONIST_NAME`
+- `PROTAGONIST_INVOLVEMENT`
+- `CHARACTERS` / roster
+- `PRESSURES`
+- `LIFE_CARD_INTERVAL`
+- `MAX_ACTIVE_CARDS`
+- `SCENE_RELEVANCE`
+
+Thought Cards are configured separately in **THOUGHT CARDS CONFIG**.
 
 ---
 
-## Thought Card Compatibility Warning
-
-Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
-Disable Optimized Context when using Thought Cards.
-
----
-
-## Quick Start Example
+## Life Cards Quick Start Example
 
 ```
 PROTAGONIST_NAME: Frank
@@ -41,22 +57,11 @@ MAX_ACTIVE_CARDS: 2
 SCENE_RELEVANCE: off
 ```
 
-If your version includes Thought Cards, their history is hard-limited to 10 thoughts per character. Oldest thoughts are trimmed automatically. You do not choose the thought count.
-
-For best results, keep model notes general and focus on settings. Current findings:
-
-- Dynamic Large works with Optimized Context off
-- DeepSeek V4 Flash works with Optimized Context off
-- DeepSeek V4 Pro works with Optimized Context off
-- Equinox works with Optimized Context off
-- Gemma 4 31B works with Optimized Context off
-- Atlas and Raven are cache-style models and are not compatible with the Thought Card workflow
-
 ---
 
 ## PROTAGONIST_NAME
 
-The name of the player’s character.
+The name of the player's character.
 
 This lets NPCs form relationships and Life Cards that involve the protagonist.
 
@@ -128,7 +133,7 @@ How often the system tries to create new Life Cards.
 
 **Recommended values:**
 - `20` = Quiet / slower pacing
-- `15` = Balanced (recommended for most models)
+- `15` = Balanced
 - `10` = Busy
 - `5` = High chaos
 
@@ -142,8 +147,8 @@ How often the system tries to create new Life Cards.
 Maximum number of active Life Cards at once.
 
 **Simple recommendations:**
-- Dynamic Large: `2`
-- Models that benefit from tighter focus: `1`
+- `2` = Layered mode
+- `1` = Focused mode
 
 **Example:**
 `MAX_ACTIVE_CARDS: 2`
@@ -154,7 +159,7 @@ Maximum number of active Life Cards at once.
 
 Controls whether Life Cards must involve characters currently in the scene.
 
-### Off (Recommended for most models)
+### Off
 `SCENE_RELEVANCE: off`
 
 Allows off-screen social development and world progression.
@@ -164,10 +169,63 @@ Allows off-screen social development and world progression.
 
 Requires at least one character from the Life Card to be present in the current scene.
 
-Better for models that benefit from tighter focus.
+---
+
+## THOUGHT CARDS CONFIG = Thought Cards
+
+Thought Cards are optional, player-facing thought journals.
+
+Create a separate Story Card named exactly:
+
+**THOUGHT CARDS CONFIG**
+
+Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
+Disable Optimized Context when using Thought Cards.
+
+Thought Cards are off by default. They do not affect Life Cards, and they do not enter story context.
+
+---
+
+## Thought Cards Config Example
+
+```
+THOUGHTS_ENABLED: false
+
+THOUGHT_CHARACTERS:
+Characters:
+
+THOUGHT_INTERVAL: 5
+
+THOUGHT_FORMATION_CHANCE: 50
+
+THOUGHT_SCENE_MODE: scene
+
+DEBUG: false
+```
+
+Turn `THOUGHTS_ENABLED` to `true` only when you want Thought Cards active.
 
 ---
 
 ## Thought Card History
 
-Thought Card history is limited to 10 thoughts per character. When a character has more than 10 thoughts, the oldest thoughts are trimmed automatically. The thought count is fixed and is not chosen by the user.
+Thought history is fixed at 10 thoughts per character. Oldest thoughts are trimmed automatically. Users do not choose thought count.
+
+---
+
+## Thought Card Model Notes
+
+Works with Optimized Context off:
+
+- Dynamic Large
+- DeepSeek V4 Flash
+- DeepSeek V4 Pro
+- Equinox
+- Gemma 4 31B
+
+Not compatible with Thought Card workflow:
+
+- Atlas
+- Raven
+
+Reason: Atlas and Raven are cache-style models.
