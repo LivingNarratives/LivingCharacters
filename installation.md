@@ -108,6 +108,11 @@ This card controls important settings like:
 - Maximum active Life Cards
 - Scene relevance
 
+If you use Thought Cards, also turn **Optimized Context** off in AI Dungeon.
+
+Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
+Disable Optimized Context when using Thought Cards.
+
 ---
 
 ## Step 9: Configure Your Settings
@@ -117,6 +122,8 @@ Add your character roster and settings to the configuration card.
 **Example:**
 ```
 PROTAGONIST_NAME: Jessica
+
+PROTAGONIST_INVOLVEMENT: normal
 
 CHARACTERS:
 Griff
@@ -144,6 +151,17 @@ tension
 ```
 
 **See the full list of Pressure Presets here:** https://LivingNarratives.github.io/LivingCharacters
+
+If you are adding the roster in the Story Card **Notes** field, use a visible label so it is clear where the roster starts:
+
+```
+Characters:
+Griff
+Dominic
+Winter
+```
+
+Do not add `Characters:` as a character name.
 
 ---
 

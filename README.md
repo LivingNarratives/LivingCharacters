@@ -35,6 +35,17 @@ Living Characters creates autonomous social threads between NPCs so your story w
 
 ---
 
+## Setup Note
+
+If you use Thought Cards, turn **Optimized Context** off in AI Dungeon.
+
+Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
+Disable Optimized Context when using Thought Cards.
+
+Thought Card history keeps the 10 most recent thoughts per character. Oldest thoughts are trimmed automatically, and there is no user setting for thought count.
+
+---
+
 ## 🌿 Characters Can Develop
 
 | Relationships | Drama | Social Texture |
