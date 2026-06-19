@@ -25,13 +25,29 @@ Want to see it in action right away?
 
 ## ✨ What It Does
 
-Living Characters creates autonomous social threads between NPCs so your story world stops revolving only around the protagonist.
+Living Characters adds two lightweight systems to AI Dungeon:
 
-| Without Living Characters | With Living Characters |
-|---|---|
-| Everyone waits for the player. | NPCs develop their own drama. |
+### 🌱 Life Cards
+
+Life Cards create autonomous social threads between characters so your story world stops revolving only around the protagonist.
+
+| Without Living Characters       | With Life Cards                             |
+| ------------------------------- | ------------------------------------------- |
+| Everyone waits for the player.  | NPCs develop their own drama.               |
 | Relationships reset constantly. | Life Cards preserve ongoing social threads. |
-| The world feels reactive. | The world feels alive. |
+| The world feels reactive.       | The world feels alive.                      |
+
+### 💭 Thought Cards
+
+Thought Cards are optional character thought journals.
+
+They let selected characters privately form short thoughts that are saved to separate player-readable cards. These thoughts are for you to look back on later. They do not enter story context, do not affect Life Cards, and do not control character behavior.
+
+| Without Thought Cards                         | With Thought Cards                      |
+| --------------------------------------------- | --------------------------------------- |
+| Character thoughts disappear after the scene. | Thoughts are saved for later reading.   |
+| You only see what reaches the story.          | You can peek at private reactions.      |
+| Inner lives are implied.                      | Characters leave little thought trails. |
 
 ---
 

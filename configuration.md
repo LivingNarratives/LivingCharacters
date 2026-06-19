@@ -199,8 +199,6 @@ THOUGHT_INTERVAL: 5
 THOUGHT_FORMATION_CHANCE: 50
 
 THOUGHT_SCENE_MODE: scene
-
-DEBUG: false
 ```
 
 Turn `THOUGHTS_ENABLED` to `true` only when you want Thought Cards active.
