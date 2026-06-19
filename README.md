@@ -1,4 +1,4 @@
-![Living Characters](https://raw.githubusercontent.com/LivingNarratives/LivingCharacters/main/LivingCharacters.png)
+![Living Characters Thought Cards Update](./ThoughtCardsUpdate.png)
 
 <div align="center">
 
