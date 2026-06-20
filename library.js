@@ -252,12 +252,26 @@ function LivingCharacters(hook, hookText) {
 
   // Parse a roster from NOTES text: one name per line, trimmed, blanks and
   // ( comments ) ignored, multi-word names preserved.
+  function isConfigSectionLabel(value) {
+    const line = String(value || "").trim();
+    const colon = line.indexOf(":");
+    if (colon === -1 || line.slice(colon + 1).trim()) return false;
+    const head = line.slice(0, colon).trim().toLowerCase().replace(/\s+/g, "_");
+    const labels = [
+      "protagonist_name", "protagonist_involvement", "characters", "pressures",
+      "life_card_interval", "social_activity", "target_cooldown", "max_active_cards",
+      "scene_relevance_mode", "scene_relevance", "trigger_on_target",
+      "force_active_card_trigger", "protagonist_always_present"
+    ];
+    return labels.indexOf(head) !== -1;
+  }
+
   function parseRoster(notes) {
     const lines = String(notes || "").replace(/\r/g, "").split("\n");
     const out = [];
     for (let i = 0; i < lines.length; i++) {
       const raw = lines[i].trim();
-      if (!raw || raw.charAt(0) === "(") continue;
+      if (!raw || raw.charAt(0) === "(" || isConfigSectionLabel(raw)) continue;
       const v = cleanName(raw);
       if (v && out.indexOf(v) === -1) out.push(v);
     }
@@ -312,7 +326,7 @@ function LivingCharacters(hook, hookText) {
     const arr = sections[key] || [];
     const out = [];
     for (let i = 0; i < arr.length; i++) {
-      if (!arr[i] || arr[i].charAt(0) === "(") continue;
+      if (!arr[i] || arr[i].charAt(0) === "(" || (key === "characters" && isConfigSectionLabel(arr[i]))) continue;
       const v = cleanName(arr[i]);
       if (v && out.indexOf(v) === -1) out.push(v);
     }
