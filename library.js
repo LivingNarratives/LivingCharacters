@@ -48,7 +48,7 @@ function LivingCharacters(hook, hookText) {
   "use strict";
 
   const CFG = {
-    VERSION: "2.53-living-characters-2026-06-19",
+    VERSION: "2.54-thought-storage-test-2026-06-21",
 
     // All cast / protagonist / pressures / pacing come from the editable config
     // Story Card below. No scenario-specific names live in engine logic.
@@ -158,7 +158,15 @@ function LivingCharacters(hook, hookText) {
     THOUGHTS_ENABLED_DEFAULT: false,    // opt-in; off by default
     THOUGHT_INTERVAL_DEFAULT: 5,        // turns between thought attempts
     THOUGHT_CHANCE_DEFAULT: 50,         // % chance per eligible turn
-    MAX_THOUGHTS_DEFAULT: 10,           // HARDCODED per-character cap (not a user config option)
+    // Thought Cards are NO LONGER limited to a fixed number of thoughts per character.
+    // Storage is bounded by CHARACTER COUNT across two fields of the Story Card:
+    //   - Entry holds the NEWEST thoughts up to ~THOUGHT_ENTRY_MAX_CHARS.
+    //   - Notes holds the OLDER overflow up to ~THOUGHT_NOTES_MAX_CHARS.
+    //   - Thoughts too old to fit in Notes are dropped (oldest-first). Numbers are
+    //     PERMANENT and never reused, so dropping old thoughts never renumbers the rest.
+    MAX_THOUGHTS_DEFAULT: 10,           // legacy default kept for save/config compatibility; NOT a cap anymore
+    THOUGHT_ENTRY_MAX_CHARS: 1900,      // newest thoughts live in the Story Card Entry up to ~this many chars
+    THOUGHT_NOTES_MAX_CHARS: 1900,      // older overflow lives in the Story Card Notes up to ~this many chars
     // Default is "scene": a character only gets a thought when they are actually in the
     // current scene. No silent fallback to the roster (that is the opt-in "roster" mode).
     THOUGHT_SCENE_MODE_DEFAULT: "scene", // scene | recent | roster
@@ -1652,13 +1660,36 @@ function LivingCharacters(hook, hookText) {
   function ensureThoughtState() {
     if (!globalThis.state || typeof state !== "object") globalThis.state = {};
     if (!state.livingThoughts || typeof state.livingThoughts !== "object") {
-      state.livingThoughts = { version: CFG.VERSION, lastThoughtTurn: 0, pendingChar: "", byChar: {}, markedChar: "", markedTurn: 0 };
+      state.livingThoughts = { version: CFG.VERSION, lastThoughtTurn: 0, pendingChar: "", byChar: {}, seq: {}, markedChar: "", markedTurn: 0 };
     }
     const ts = state.livingThoughts;
     if (!ts.byChar || typeof ts.byChar !== "object") ts.byChar = {};
+    if (!ts.seq || typeof ts.seq !== "object") ts.seq = {};   // per-character PERMANENT thought counter
     if (typeof ts.lastThoughtTurn !== "number") ts.lastThoughtTurn = 0;
     if (typeof ts.markedChar !== "string") ts.markedChar = "";   // 💭 "recently updated" marker
     if (typeof ts.markedTurn !== "number") ts.markedTurn = 0;
+    // Migrate legacy storage. Older saves stored byChar[name] as an array of plain
+    // strings whose displayed number came from the array position -- so removing an old
+    // thought renumbered the survivors. Convert each entry to a { n, text } object with a
+    // PERMANENT number, and seed ts.seq[name] with the highest number seen so future
+    // thoughts keep counting up (never reused, never reset).
+    const names = Object.keys(ts.byChar);
+    for (let i = 0; i < names.length; i++) {
+      const nm = names[i];
+      const arr = ts.byChar[nm];
+      if (!Array.isArray(arr)) { ts.byChar[nm] = []; continue; }
+      let maxN = (typeof ts.seq[nm] === "number") ? ts.seq[nm] : 0;
+      for (let j = 0; j < arr.length; j++) {
+        const e = arr[j];
+        if (e && typeof e === "object" && typeof e.text === "string") {
+          if (typeof e.n !== "number") e.n = ++maxN;
+          else if (e.n > maxN) maxN = e.n;
+        } else {
+          arr[j] = { n: ++maxN, text: String(e == null ? "" : e) };
+        }
+      }
+      if (maxN > (typeof ts.seq[nm] === "number" ? ts.seq[nm] : 0)) ts.seq[nm] = maxN;
+    }
     return ts;
   }
 
@@ -1682,23 +1713,70 @@ function LivingCharacters(hook, hookText) {
   // non-matching token (CFG.THOUGHT_CARD_KEY_PREFIX + name, no plain-name trigger),
   // so the AI Dungeon front-end never matches it against story text and the card is
   // NEVER injected into context. Type is "Custom" purely for player-side organization.
+  // One stored thought renders as "N. text" where N is the PERMANENT number.
+  function thoughtLine(item) {
+    return item.n + ". " + item.text;
+  }
+  function renderThoughtLines(items) {
+    const lines = [];
+    for (let i = 0; i < items.length; i++) lines.push(thoughtLine(items[i]));
+    return lines.join("\n");
+  }
+
+  // Greedily take the NEWEST items whose rendered lines fit within `max` characters
+  // (joined by newlines). Returns { kept, dropped }, both in ascending (oldest -> newest)
+  // order. At least one item is always kept, so the newest thought is never lost even if
+  // it alone exceeds `max`.
+  function fitNewest(items, max) {
+    const kept = [];
+    let len = 0;
+    for (let i = items.length - 1; i >= 0; i--) {
+      const line = thoughtLine(items[i]);
+      const add = (kept.length ? 1 : 0) + line.length; // +1 for the joining newline
+      if (kept.length > 0 && (len + add) > max) break;
+      len += add;
+      kept.unshift(items[i]);
+    }
+    const dropped = items.slice(0, items.length - kept.length);
+    return { kept: kept, dropped: dropped };
+  }
+
+  // Render a character's Thought Card from the stored list, split by CHARACTER COUNT:
+  //   - Entry  = the NEWEST thoughts, up to ~THOUGHT_ENTRY_MAX_CHARS.
+  //   - Notes  = the OLDER overflow from Entry, up to ~THOUGHT_NOTES_MAX_CHARS.
+  //   - Thoughts too old to fit even in Notes are dropped (oldest-first) from storage.
+  // New thoughts always land in Entry; older ones flow Entry -> Notes; the oldest Notes
+  // thoughts are trimmed only when Notes has no room. Numbers are permanent, so trimming
+  // never renumbers anything that remains.
   function syncThoughtCard(name, TC, marked) {
     const ts = ensureThoughtState();
-    const list = Array.isArray(ts.byChar[name]) ? ts.byChar[name] : [];
-    const lines = [];
-    for (let i = 0; i < list.length; i++) lines.push((i + 1) + ". " + list[i]);
-    const entry = lines.length ? lines.join("\n") : "(no thoughts yet)";
+    let list = Array.isArray(ts.byChar[name]) ? ts.byChar[name] : [];
+
+    const entryFit = fitNewest(list, CFG.THOUGHT_ENTRY_MAX_CHARS);
+    const notesFit = fitNewest(entryFit.dropped, CFG.THOUGHT_NOTES_MAX_CHARS);
+
+    // Drop the oldest thoughts that no longer fit anywhere so state stays bounded.
+    const keepCount = entryFit.kept.length + notesFit.kept.length;
+    if (keepCount < list.length) {
+      list = list.slice(list.length - keepCount);
+      ts.byChar[name] = list;
+    }
+
+    const entry = entryFit.kept.length ? renderThoughtLines(entryFit.kept) : "(no thoughts yet)";
+    const notes = notesFit.kept.length ? renderThoughtLines(notesFit.kept) : "";
+
     createOrPatchStoryCard(
       thoughtCardTitle(name, !!marked), // "Name - Thoughts" (+ 💭 while recently updated)
       CFG.THOUGHT_CARD_TYPE,
       thoughtCardToken(name),     // stable key: lc-thoughts:name (UNCHANGED) -- re-titling is safe
-      entry,
-      ""                          // Notes left blank for release
+      entry,                      // newest thoughts
+      notes                       // older overflow (Notes field)
     );
   }
 
-  // Append a thought (numbered) and keep only the most recent maxThoughts. No overwrite,
-  // no keys, no history beyond the capped list.
+  // Append a thought with a PERMANENT number. No overwrite, no keys. The stored list is
+  // NOT capped by count -- syncThoughtCard bounds it by character count (Entry/Notes), so
+  // removing old thoughts never renumbers the survivors.
   function appendThought(name, text, TC) {
     const ts = ensureThoughtState();
     name = cleanName(name);
@@ -1706,10 +1784,12 @@ function LivingCharacters(hook, hookText) {
     if (!name || !text) return false;
     if (!Array.isArray(ts.byChar[name])) ts.byChar[name] = [];
     const arr = ts.byChar[name];
-    if (arr.length && arr[arr.length - 1] === text) return false; // skip exact consecutive dup
-    arr.push(text);
-    const max = (TC && TC.maxThoughts) || CFG.MAX_THOUGHTS_DEFAULT;
-    while (arr.length > max) arr.shift();
+    if (arr.length && arr[arr.length - 1].text === text) return false; // skip exact consecutive dup
+    // Per-character counter that only ever increases: if the last thought was #10, the
+    // next is #11 even after #1 is deleted. Never reset, never reused.
+    if (typeof ts.seq[name] !== "number") ts.seq[name] = 0;
+    ts.seq[name] += 1;
+    arr.push({ n: ts.seq[name], text: text });
     // Visual activity marker: 💭 moves to the card that just updated. Clear it off the
     // previously-marked card (if a different one), then mark this one. (Also clears on a
     // timer; see expireThoughtMarker.) Display-only -- does not touch Life Cards.

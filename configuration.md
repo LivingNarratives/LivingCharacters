@@ -207,7 +207,11 @@ Turn `THOUGHTS_ENABLED` to `true` only when you want Thought Cards active.
 
 ## Thought Card History
 
-Thought history is fixed at 10 thoughts per character. Oldest thoughts are trimmed automatically. Users do not choose thought count.
+Thought numbers are permanent. Thoughts no longer renumber after rollover, and Thought Cards are no longer limited to 10 thoughts per character.
+
+New thoughts stay in Entry. Older thoughts roll into Notes. Notes trims the oldest archived thoughts only when full.
+
+Thought Card contents are still not injected into story context.
 
 ---
 
