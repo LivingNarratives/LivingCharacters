@@ -235,7 +235,6 @@ Thought Card contents are still not injected into story context.
 
 Works with Optimized Context off:
 
-- Dynamic Large
 - DeepSeek V4 Flash
 - DeepSeek V4 Pro
 - Equinox
