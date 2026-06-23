@@ -199,9 +199,26 @@ THOUGHT_INTERVAL: 5
 THOUGHT_FORMATION_CHANCE: 50
 
 THOUGHT_SCENE_MODE: scene
+
+MAX_THOUGHT_LENGTH: 180
 ```
 
 Turn `THOUGHTS_ENABLED` to `true` only when you want Thought Cards active.
+
+---
+
+## MAX_THOUGHT_LENGTH
+
+Controls the maximum length of each saved Thought Card thought.
+
+**Default:**
+`MAX_THOUGHT_LENGTH: 180`
+
+**Accepted range:** `60` to `400`
+
+Use a smaller number for short, quick thoughts. Use a larger number if you want characters to leave longer private reactions.
+
+Values below `60` are raised to `60`. Values above `400` are lowered to `400`.
 
 ---
 
