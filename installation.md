@@ -156,7 +156,7 @@ Dominic
 Winter
 ```
 
-Do not add `Characters:` as a character name.
+`Characters:` is a label, not a character name. Living Characters ignores it when reading the roster.
 
 ---
 
