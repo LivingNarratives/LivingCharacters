@@ -90,9 +90,8 @@ A list of NPCs that will participate in the social simulation.
 - One character per line
 - Only include characters you want in the Living Characters system
 - In the Story Card **Notes** field, use a clear label like `Characters:` above the list
-- Do not put `Characters:` on its own character line unless you actually want that text treated as a name
 
-The label is just there to help you see where the roster starts.
+The `Characters:` label is just there to help you see where the roster starts. It is a label, not a character name, and Living Characters ignores it when reading the roster.
 
 **Example:**
 ```
