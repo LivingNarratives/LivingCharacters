@@ -171,6 +171,8 @@ Thought Cards are optional and off by default. They do not affect Life Cards and
 Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
 Disable Optimized Context when using Thought Cards.
 
+Thought length can be limited with `MAX_THOUGHT_LENGTH`. Valid values are `60` to `400` characters.
+
 See [Configuration](./configuration.md) for the full Thought Cards setup example.
 
 ---
