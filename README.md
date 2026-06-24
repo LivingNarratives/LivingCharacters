@@ -31,11 +31,11 @@ Living Characters adds two lightweight systems to AI Dungeon:
 
 Life Cards create autonomous social threads between characters so your story world stops revolving only around the protagonist.
 
-| Without Living Characters       | With Life Cards                             |
-| ------------------------------- | ------------------------------------------- |
-| Everyone waits for the player.  | NPCs develop their own drama.               |
+| Without Living Characters | With Life Cards |
+| --- | --- |
+| Everyone waits for the player. | NPCs develop their own drama. |
 | Relationships reset constantly. | Life Cards preserve ongoing social threads. |
-| The world feels reactive.       | The world feels alive.                      |
+| The world feels reactive. | The world feels alive. |
 
 ### 💭 Thought Cards
 
@@ -43,10 +43,10 @@ Thought Cards are optional character thought journals.
 
 They let selected characters privately form short thoughts that are saved to separate player-readable cards. These thoughts are for you to look back on later. They do not enter story context, do not affect Life Cards, and do not control character behavior.
 
-| Without Thought Cards                         | With Thought Cards                      |
-| --------------------------------------------- | --------------------------------------- |
-| Character thoughts disappear after the scene. | Thoughts are saved for later reading.   |
-| You only see what reaches the story.          | You can peek at private reactions.      |
+| Without Thought Cards | With Thought Cards |
+| --- | --- |
+| Character thoughts disappear after the scene. | Thoughts are saved for later reading. |
+| You only see what reaches the story. | You can peek at private reactions. |
 | Inner lives are implied.                      | Characters leave little thought trails. |
 
 ---
@@ -58,7 +58,7 @@ If you use Thought Cards, turn **Optimized Context** off in AI Dungeon.
 Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
 Disable Optimized Context when using Thought Cards.
 
-Thought Card numbers are permanent. Thoughts no longer renumber after rollover, and Thought Cards are no longer limited to 10 thoughts per character.
+Thought Card numbers are permanent. Thoughts no longer renumber after rollover, and Thought Cards have no fixed 10-thought cap anymore.
 
 New thoughts stay in Entry. Older thoughts roll into Notes, and Notes trims the oldest archived thoughts only when full. Thought Card contents are still not injected into story context.
 

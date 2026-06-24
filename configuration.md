@@ -54,7 +54,7 @@ LIFE_CARD_INTERVAL: 15
 
 MAX_ACTIVE_CARDS: 2
 
-SCENE_RELEVANCE: off
+SCENE_RELEVANCE: strict
 ```
 
 ---
@@ -206,7 +206,7 @@ Turn `THOUGHTS_ENABLED` to `true` only when you want Thought Cards active.
 
 ## Thought Card History
 
-Thought numbers are permanent. Thoughts no longer renumber after rollover, and Thought Cards are no longer limited to 10 thoughts per character.
+Thought numbers are permanent. Thoughts no longer renumber after rollover, and Thought Cards have no fixed 10-thought cap anymore.
 
 New thoughts stay in Entry. Older thoughts roll into Notes. Notes trims the oldest archived thoughts only when full.
 

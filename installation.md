@@ -131,7 +131,7 @@ Zephyr
 LIFE_CARD_INTERVAL: 15
 MAX_ACTIVE_CARDS: 2
 
-SCENE_RELEVANCE: off
+SCENE_RELEVANCE: strict
 
 PRESSURES:
 friendship
@@ -167,6 +167,8 @@ Thought Cards use a separate Story Card named exactly:
 **THOUGHT CARDS CONFIG**
 
 Thought Cards are optional and off by default. They do not affect Life Cards and do not enter story context.
+
+Thought Cards have no fixed 10-thought cap anymore. Recent thoughts stay in Entry, older thoughts roll over into Notes, and the oldest archived Notes thoughts are trimmed when storage fills.
 
 Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
 Disable Optimized Context when using Thought Cards.

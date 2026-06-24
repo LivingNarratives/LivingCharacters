@@ -16,7 +16,7 @@
 
 - Thought numbers are now permanent.
 - Thoughts no longer renumber after rollover.
-- Thought Cards are no longer limited to 10 thoughts per character.
+- Thought Cards have no fixed 10-thought cap anymore.
 - New thoughts stay in Entry.
 - Older thoughts roll into Notes.
 - Notes trims the oldest archived thoughts only when full.
