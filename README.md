@@ -62,8 +62,6 @@ Thought Card numbers are permanent. Thoughts no longer renumber after rollover, 
 
 New thoughts stay in Entry. Older thoughts roll into Notes, and Notes trims the oldest archived thoughts only when full. Thought Card contents are still not injected into story context.
 
-Thought length can be limited in **THOUGHT CARDS CONFIG** with `MAX_THOUGHT_LENGTH`. Use any value from `60` to `400` characters.
-
 ---
 
 ## 🌿 Characters Can Develop
