@@ -48,7 +48,7 @@ function LivingCharacters(hook, hookText) {
   "use strict";
 
   const CFG = {
-    VERSION: "2.54-thought-storage-test-2026-06-21",
+    VERSION: "2.56-empty-response-fix-2026-06-24",
 
     // All cast / protagonist / pressures / pacing come from the editable config
     // Story Card below. No scenario-specific names live in engine logic.
@@ -1560,7 +1560,19 @@ function LivingCharacters(hook, hookText) {
     return out;
   }
 
-  // ==========================================================================
+  // Output-safety fallback. After the script removes hidden/private/thought blocks, the
+  // visible text can end up empty (e.g. an opening <LC_PRIVATE> with no closing tag strips
+  // to end-of-string). AI Dungeon treats an empty OR whitespace-only return (including a
+  // plain space) as "The AI service returned an empty response". This guarantees a
+  // non-empty return WITHOUT ever exposing private tags: it strips any remaining blocks,
+  // and if nothing visible is left, returns a zero-width space the player never sees.
+  // For normal output (real visible text present) it returns that text unchanged.
+  function safeVisibleOutput(value) {
+    const out = cleanText(stripBlocks(value));
+    return out || "\u200B";
+  }
+
+
   // THOUGHT CARD SYSTEM
   // --------------------------------------------------------------------------
   // Part of LIVING CHARACTERS, a LivingNarratives project.
@@ -1918,7 +1930,10 @@ function LivingCharacters(hook, hookText) {
     syncCards();
     updateDebugCard();
     const cleaned = stripBlocks(visibleText);
-    return cleaned || visibleText || " ";
+    // Safety fallback only: never return empty/whitespace (would trigger AI Dungeon's
+    // "empty response" error). safeVisibleOutput re-strips to guarantee no private tag
+    // can leak via the fallback, and returns a zero-width space if nothing visible remains.
+    return safeVisibleOutput(cleaned || visibleText);
   }
 
   function handleContext(rawText) {

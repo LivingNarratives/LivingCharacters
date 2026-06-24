@@ -64,6 +64,12 @@ New thoughts stay in Entry. Older thoughts roll into Notes, and Notes trims the 
 
 ---
 
+## Troubleshooting
+
+If AI Dungeon shows **"The AI service returned an empty response"**, update to the latest Living Characters library. The script now returns a zero-width fallback character when hidden/private output is stripped and nothing visible remains. This is meant to reduce empty-response errors, especially seen during Nova testing, without showing private Thought Card text to the player.
+
+---
+
 ## 🌿 Characters Can Develop
 
 | Relationships | Drama | Social Texture |
