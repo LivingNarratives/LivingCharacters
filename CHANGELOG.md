@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.56 - Empty Response Fallback Fix
+
+- Fixed: Added a zero-width Unicode fallback for stripped/empty outputs to reduce AI Dungeon empty response errors, especially seen during Nova testing.
+- Replaced the previous normal-space fallback because AI Dungeon can still treat trimmed whitespace as empty.
+- Existing hidden/private output stripping behavior is unchanged.
+
 ## 2.55 - Thought Card Clipping Rollback
 
 - Rolled back the configurable Thought Card clipping / `MAX_THOUGHT_LENGTH` update.
