@@ -171,12 +171,6 @@ function LivingCharacters(hook, hookText) {
     // current scene. No silent fallback to the roster (that is the opt-in "roster" mode).
     THOUGHT_SCENE_MODE_DEFAULT: "scene", // scene | recent | roster
     THOUGHT_SCENE_TIGHT_CHARS: 700,     // "scene" mode: how many trailing chars count as the CURRENT scene
-    // Per-thought length cap (configurable via THOUGHT CARDS CONFIG -> MAX_THOUGHT_LENGTH).
-    // Applied to a single captured thought so one entry cannot fill the whole card. The
-    // captured text is trimmed at a word boundary and gets an ellipsis when shortened.
-    MAX_THOUGHT_LENGTH_DEFAULT: 180,    // default cap if the config value is missing/invalid
-    MAX_THOUGHT_LENGTH_MIN: 60,         // smallest allowed configured value
-    MAX_THOUGHT_LENGTH_MAX: 400,        // largest allowed configured value
 
     // Fallback pressures, used ONLY if the config card lists none. Generic and
     // scenario-agnostic; users override these in the config card's PRESSURES.
@@ -1601,7 +1595,7 @@ function LivingCharacters(hook, hookText) {
   // No XML, no LC_MEMORY, no write-back blocks, no detectors. Runs independently
   // of Life Cards (a character can have thoughts with no active Life Card).
   // ==========================================================================
-  const THOUGHT_KEYS = ["thoughts_enabled", "thought_characters", "thought_interval", "thought_formation_chance", "thought_scene_mode", "max_thought_length"];
+  const THOUGHT_KEYS = ["thoughts_enabled", "thought_characters", "thought_interval", "thought_formation_chance", "thought_scene_mode"];
 
   // THOUGHT CARDS CONFIG
   // The editable Story Card that controls the separate Thought Card system. It is
@@ -1628,10 +1622,7 @@ function LivingCharacters(hook, hookText) {
       "50",
       "",
       "THOUGHT_SCENE_MODE:",
-      "scene",
-      "",
-      "MAX_THOUGHT_LENGTH:",
-      "180"
+      "scene"
     ].join("\n");
   }
 
@@ -1662,13 +1653,7 @@ function LivingCharacters(hook, hookText) {
     // Card targeting, pressure selection, momentum, or story logic.
     let sceneMode = String(configFirst(sections, "thought_scene_mode", CFG.THOUGHT_SCENE_MODE_DEFAULT)).toLowerCase().replace(/\s+/g, "");
     if (["scene", "recent", "roster"].indexOf(sceneMode) === -1) sceneMode = CFG.THOUGHT_SCENE_MODE_DEFAULT;
-    // MAX_THOUGHT_LENGTH: per-thought character cap. Missing/invalid -> default 180,
-    // then clamped to [MIN, MAX]. Applied AFTER capture in captureThought (display-only;
-    // never affects Life Cards, numbering, or Entry/Notes rollover).
-    let maxThoughtLength = toIntOr(configFirst(sections, "max_thought_length", CFG.MAX_THOUGHT_LENGTH_DEFAULT), CFG.MAX_THOUGHT_LENGTH_DEFAULT);
-    if (isNaN(maxThoughtLength) || maxThoughtLength <= 0) maxThoughtLength = CFG.MAX_THOUGHT_LENGTH_DEFAULT;
-    maxThoughtLength = Math.max(CFG.MAX_THOUGHT_LENGTH_MIN, Math.min(CFG.MAX_THOUGHT_LENGTH_MAX, maxThoughtLength));
-    return { enabled: enabled, characters: characters, interval: interval, chance: chance, maxThoughts: maxThoughts, sceneMode: sceneMode, maxThoughtLength: maxThoughtLength };
+    return { enabled: enabled, characters: characters, interval: interval, chance: chance, maxThoughts: maxThoughts, sceneMode: sceneMode };
   }
 
   // Separate state slice -- never touches chaosGoblinV2 (Life Card state).
@@ -1880,30 +1865,8 @@ function LivingCharacters(hook, hookText) {
     // Parenthetical capture is the only thought mechanism -- no LC_MEMORY/XML, no fallback
     // formats, no validation.
     return "\n\n<LC_PRIVATE>\n" +
-      "Begin your reply with " + name + "'s own private thought right now, in first person (I / me / my). " +
-      "Write exactly one private thought in parentheses. Maximum " + TC.maxThoughtLength + " characters. One sentence only. No dialogue, no narration, no actions, no explanation. " +
-      "Then continue the story normally. The parenthetical is hidden from the player automatically. Format: (I ...)\n" +
+      "Begin your reply with ONE short parenthetical: " + name + "'s own private thought right now, in first person (I / me / my), one sentence. Then continue the story normally. The parenthetical is hidden from the player automatically. Format: (I ...)\n" +
       "</LC_PRIVATE>";
-  }
-
-  // Trim a single captured thought to a maximum character length. Prefers a word
-  // boundary and appends an ellipsis when it shortens the text; the returned string
-  // (including the ellipsis) never exceeds `max`. Pure string work -- it does not touch
-  // numbering, Entry/Notes rollover, Life Cards, or any story logic.
-  function trimThoughtToLimit(text, max) {
-    text = String(text || "");
-    max = Number(max) || CFG.MAX_THOUGHT_LENGTH_DEFAULT;
-    if (text.length <= max) return text;
-    const ell = "…";
-    const room = Math.max(1, max - ell.length); // leave space for the ellipsis
-    let cut = text.slice(0, room);
-    // Prefer a word boundary, but only back up if a space is reasonably far in so we do
-    // not lose most of the sentence on a single very long word.
-    const lastSpace = cut.lastIndexOf(" ");
-    if (lastSpace >= Math.floor(room * 0.6)) cut = cut.slice(0, lastSpace);
-    cut = cut.replace(/[\s.,;:!?'"\-]+$/, ""); // tidy trailing space/punctuation
-    if (!cut) cut = text.slice(0, room); // safety: never return just an ellipsis
-    return cut + ell;
   }
 
   // Output-hook capture: ONLY when a thought was asked this turn. Captures a single
@@ -1916,13 +1879,9 @@ function LivingCharacters(hook, hookText) {
     if (!name) return original;
     const m = /^\s*\(([^)]*)\)/.exec(original);
     if (!m) return original;
-    const TC = buildThoughtConfig();
-    let t = cleanText(m[1]).replace(/^[A-Za-z][\w '\-]{0,30}:\s*/, "").trim();
+    const t = cleanText(m[1]).replace(/^[A-Za-z][\w '\-]{0,30}:\s*/, "").trim();
     if (!t) return original;
-    // Enforce the configured per-thought length cap AFTER capture, before storing. Keeps
-    // a single thought from filling the whole card; the entry stays one numbered item.
-    t = trimThoughtToLimit(t, TC.maxThoughtLength);
-    appendThought(name, t, TC);
+    appendThought(name, t, buildThoughtConfig());
     return original.slice(m[0].length); // strip the leading parenthetical only
   }
 
