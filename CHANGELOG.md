@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.55 - Thought Card Clipping Rollback
+
+- Rolled back the configurable Thought Card clipping / `MAX_THOUGHT_LENGTH` update.
+- Removed the 60-400 character clipping setting from the public docs.
+- Restored the previous Thought Card storage behavior from 2.54.
+
 ## 2.54 - Thought Card Storage Update
 
 - Thought numbers are now permanent.
