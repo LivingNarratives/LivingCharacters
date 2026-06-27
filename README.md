@@ -58,9 +58,13 @@ If you use Thought Cards, turn **Optimized Context** off in AI Dungeon.
 Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
 Disable Optimized Context when using Thought Cards.
 
-Thought Card numbers are permanent. Thoughts no longer renumber after rollover, and Thought Cards are no longer limited to 10 thoughts per character.
+Thought Card numbers are permanent. Thoughts no longer renumber after rollover, and Thought Cards have no fixed 10-thought cap anymore.
 
 New thoughts stay in Entry. Older thoughts roll into Notes, and Notes trims the oldest archived thoughts only when full. Thought Card contents are still not injected into story context.
+
+Thought Cards use an internal storage safety buffer during Entry -> Notes rollover. This helps prevent rare long-thought bleed-over when storage is nearly full, without shortening or limiting individual thoughts.
+
+The 💭 marker shows the most recently updated Thought Card. Living Characters scans all Thought Cards and clears older 💭 markers before marking the newest updated card, so only one Thought Card should show 💭 at a time.
 
 ---
 

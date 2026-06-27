@@ -168,6 +168,10 @@ Thought Cards use a separate Story Card named exactly:
 
 Thought Cards are optional and off by default. They do not affect Life Cards and do not enter story context.
 
+Recent thoughts stay in Entry. Older thoughts roll over into Notes, and the oldest archived Notes thoughts are trimmed when storage fills. The internal storage limit is 1700 characters for Entry and 1700 characters for Notes, leaving extra buffer space during rollover without shortening individual thoughts.
+
+The 💭 marker shows the most recently updated Thought Card. Only one Thought Card should display 💭 at a time.
+
 Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
 Disable Optimized Context when using Thought Cards.
 

@@ -48,7 +48,7 @@ function LivingCharacters(hook, hookText) {
   "use strict";
 
   const CFG = {
-    VERSION: "2.56-empty-response-fix-2026-06-24",
+    VERSION: "2.54-thought-storage-test-2026-06-21",
 
     // All cast / protagonist / pressures / pacing come from the editable config
     // Story Card below. No scenario-specific names live in engine logic.
@@ -165,8 +165,8 @@ function LivingCharacters(hook, hookText) {
     //   - Thoughts too old to fit in Notes are dropped (oldest-first). Numbers are
     //     PERMANENT and never reused, so dropping old thoughts never renumbers the rest.
     MAX_THOUGHTS_DEFAULT: 10,           // legacy default kept for save/config compatibility; NOT a cap anymore
-    THOUGHT_ENTRY_MAX_CHARS: 1900,      // newest thoughts live in the Story Card Entry up to ~this many chars
-    THOUGHT_NOTES_MAX_CHARS: 1900,      // older overflow lives in the Story Card Notes up to ~this many chars
+    THOUGHT_ENTRY_MAX_CHARS: 1700,      // newest thoughts live in the Story Card Entry up to ~this many chars
+    THOUGHT_NOTES_MAX_CHARS: 1700,      // older overflow lives in the Story Card Notes up to ~this many chars
     // Default is "scene": a character only gets a thought when they are actually in the
     // current scene. No silent fallback to the roster (that is the opt-in "roster" mode).
     THOUGHT_SCENE_MODE_DEFAULT: "scene", // scene | recent | roster
@@ -1786,6 +1786,27 @@ function LivingCharacters(hook, hookText) {
     );
   }
 
+  // Strip the 💭 marker from EVERY Thought Card title (optionally keeping it on one
+  // character). Title-only: it re-titles the card in place and never touches Entry,
+  // Notes, storage, numbering, or rollover. Scans the live story cards directly (not
+  // just ts.markedChar), so it SELF-CORRECTS cases where a prior glitch left 💭 stuck
+  // on more than one card. Ensures there is never more than one marked Thought Card.
+  function clearAllThoughtMarkers(keepName) {
+    if (!Array.isArray(globalThis.storyCards)) return;
+    const prefix = CFG.THOUGHT_MARKER + " ";
+    const keepTitle = keepName ? (cleanName(keepName) + CFG.THOUGHT_CARD_TITLE_SUFFIX) : "";
+    for (let i = 0; i < storyCards.length; i++) {
+      const card = storyCards[i];
+      if (!card || typeof card.title !== "string") continue;
+      // Only our Thought Cards (non-matching key prefix), and only if currently marked.
+      if (String(card.keys || "").indexOf(CFG.THOUGHT_CARD_KEY_PREFIX) !== 0) continue;
+      if (card.title.indexOf(prefix) !== 0) continue;
+      const bare = card.title.slice(prefix.length);
+      if (keepTitle && bare === keepTitle) continue; // leave the one we're (re)marking
+      card.title = bare;
+    }
+  }
+
   // Append a thought with a PERMANENT number. No overwrite, no keys. The stored list is
   // NOT capped by count -- syncThoughtCard bounds it by character count (Entry/Notes), so
   // removing old thoughts never renumbers the survivors.
@@ -1802,10 +1823,11 @@ function LivingCharacters(hook, hookText) {
     if (typeof ts.seq[name] !== "number") ts.seq[name] = 0;
     ts.seq[name] += 1;
     arr.push({ n: ts.seq[name], text: text });
-    // Visual activity marker: 💭 moves to the card that just updated. Clear it off the
-    // previously-marked card (if a different one), then mark this one. (Also clears on a
-    // timer; see expireThoughtMarker.) Display-only -- does not touch Life Cards.
-    if (ts.markedChar && ts.markedChar !== name) syncThoughtCard(ts.markedChar, TC, false);
+    // Visual activity marker: 💭 moves to the card that just updated. Strip 💭 off EVERY
+    // Thought Card first (self-correcting any stuck markers), then mark only this one, so
+    // exactly one card carries 💭. (Also clears on a timer; see expireThoughtMarker.)
+    // Display-only -- does not touch Life Cards, storage, or Entry/Notes.
+    clearAllThoughtMarkers(name);
     ts.markedChar = name;
     ts.markedTurn = (ensureState().turn) || 0;
     syncThoughtCard(name, TC, true);

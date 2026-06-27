@@ -206,11 +206,21 @@ Turn `THOUGHTS_ENABLED` to `true` only when you want Thought Cards active.
 
 ## Thought Card History
 
-Thought numbers are permanent. Thoughts no longer renumber after rollover, and Thought Cards are no longer limited to 10 thoughts per character.
+Thought numbers are permanent. Thoughts no longer renumber after rollover, and Thought Cards have no fixed 10-thought cap anymore.
 
 New thoughts stay in Entry. Older thoughts roll into Notes. Notes trims the oldest archived thoughts only when full.
 
 Thought Card contents are still not injected into story context.
+
+Thought Cards use an internal storage safety buffer:
+
+- Entry keeps recent thoughts.
+- Notes keeps older rolled-over thoughts.
+- The internal Entry and Notes storage limit is 1700 characters each.
+- The extra buffer space helps prevent rare long-thought bleed-over when storage is nearly full.
+- Individual thought generation has not been shortened or limited. Long, natural thoughts are still supported.
+
+The 💭 marker means "most recently updated." Living Characters scans Thought Cards and clears existing 💭 markers before marking the newest updated card. Only one Thought Card should display 💭 at a time.
 
 ---
 
