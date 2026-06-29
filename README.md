@@ -76,6 +76,8 @@ If AI Dungeon shows **"The AI service returned an empty response"**, update to t
 
 The latest release also adds another final-output safeguard to further reduce blank narrator responses after hidden/private output is removed.
 
+It also fixes a narrator response formatting issue where returned story text could be missing a needed space.
+
 ---
 
 ## 🌿 Characters Can Develop

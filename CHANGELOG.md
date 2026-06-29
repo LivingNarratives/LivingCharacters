@@ -5,6 +5,7 @@
 - Fixed Thought Cards so captured thoughts are written to the correct character's Thought Card instead of occasionally attaching to the wrong person.
 - Improved Thought Card instruction wording to be more forceful, improving compliance across more AI models.
 - Added another empty-response safeguard to further reduce blank narrator responses after hidden/private output is stripped.
+- Fixed narrator response formatting so returned story text keeps the needed spacing.
 
 ## 2.57 - Thought Cards Maintenance Update
 
