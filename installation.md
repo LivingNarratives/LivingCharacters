@@ -172,6 +172,8 @@ Recent thoughts stay in Entry. Older thoughts roll over into Notes, and the olde
 
 The 💭 marker shows the most recently updated Thought Card. Only one Thought Card should display 💭 at a time.
 
+The latest script also improves Thought Card reliability so captured thoughts are filed to the correct character's card more consistently.
+
 Thought Cards are not compatible with AI Dungeon's Optimized Context feature.
 Disable Optimized Context when using Thought Cards.
 

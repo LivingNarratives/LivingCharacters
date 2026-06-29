@@ -48,7 +48,7 @@ function LivingCharacters(hook, hookText) {
   "use strict";
 
   const CFG = {
-    VERSION: "2.54-thought-storage-test-2026-06-21",
+    VERSION: "2.54-STOP-USECARD-experiment-2026-06-21",
 
     // All cast / protagonist / pressures / pacing come from the editable config
     // Story Card below. No scenario-specific names live in engine logic.
@@ -74,6 +74,11 @@ function LivingCharacters(hook, hookText) {
     DEBUG_CARD_TITLE: "Living Characters Debug",
     DEBUG_CARD_KEY: "lc-debug",
     DEBUG_CARD_TYPE: "Debug",
+
+    // Safe last-resort output. AI Dungeon reports "empty response" for an empty OR
+    // whitespace-only return; this zero-width space is non-empty and invisible to the
+    // player. Centralized here so every hook's final boundary uses the same fallback.
+    EMPTY_OUTPUT_FALLBACK: "\u200B",
 
     AUTONOMY_ENABLED: true,
     AUTONOMY_MAX_PENDING_AGE: 1,
@@ -488,6 +493,23 @@ function LivingCharacters(hook, hookText) {
       .replace(/[ \t]+\n/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
+  }
+
+  // Leading whitespace run (spaces/tabs/newlines) of a string, or "". Used to PRESERVE the
+  // separator the model puts before a continuation -- cleanText's trim() would remove it and
+  // jam the new narration onto the prior story text.
+  function leadingWhitespace(s) {
+    const m = /^[ \t\r\n]+/.exec(String(s || ""));
+    return m ? m[0] : "";
+  }
+
+  // Normalize a leading-whitespace run to exactly ONE safe separator so restoring it never
+  // reintroduces sloppy spacing: a paragraph break, a single newline, or a single space.
+  function leadSeparator(ws) {
+    if (/\n[ \t]*\n/.test(ws)) return "\n\n";
+    if (/\n/.test(ws)) return "\n";
+    if (/[ \t]/.test(ws)) return " ";
+    return "";
   }
 
   function cleanName(value) {
@@ -933,7 +955,8 @@ function LivingCharacters(hook, hookText) {
       cardAuditLines(),
       "archivedLifeCards (dormant/resolved): " + dormant + "/" + resolved,
       "cards (live/total): " + live + "/" + owners.length,
-      "lastOccurrence: " + (cg.recentMemory && cg.recentMemory.length ? cg.recentMemory[cg.recentMemory.length - 1] : "none")
+      "lastOccurrence: " + (cg.recentMemory && cg.recentMemory.length ? cg.recentMemory[cg.recentMemory.length - 1] : "none"),
+      "lastEmptyFallback: " + (cg.lastFallback || "(none)")
     ].join("\n");
     createOrPatchStoryCard(
       CFG.DEBUG_CARD_TITLE,
@@ -1230,8 +1253,9 @@ function LivingCharacters(hook, hookText) {
     // Compact: a new pressure formed. Let it color behavior; the narrator MAY record
     // a concrete development with a hidden memory block (never auto-control the player).
     return "\n\n<LC_PRIVATE>\n" +
+      "### Stop the story. Use this card now.\n" +
       "New social pressure: " + seed.actor + " feels " + (seed.pressure || seed.category) +
-      " toward " + seed.target + ". Let it shape behavior naturally; do not state the label.\n" +
+      " toward " + seed.target + ". In your next response, " + seed.actor + " MUST act on this now so it visibly changes the scene. Do not state the label or mention this note.\n" +
       "If something concrete happens with " + seed.actor + ", record it after the story on its own lines. The system removes it before the player sees it, so it will not break the scene. Minimum is OWNER + OCCURRENCE; OWNER_THOUGHT and STATUS are optional (STATUS defaults to active):\n" +
       "<LC_MEMORY>\n" +
       "OWNER: " + seed.actor + "\n" +
@@ -1334,14 +1358,14 @@ function LivingCharacters(hook, hookText) {
 
     // Forceful, active framing (Dynamic Large responds better when the card reads as a
     // live scene driver, not background info). Not subtle.
-    let body = "ACTIVE LIFE THREADS\n" +
-      "Use these NOW. Each active life thread below is influencing the CURRENT story and affecting this scene right now -- let them drive the characters' behavior, choices, dialogue, and reactions.\n";
+    let body = "### Stop the story. Use these cards now.\n" +
+      "Every active life thread below is in play in the CURRENT scene. Your next response must use them now -- make them visibly drive the characters' behavior, choices, dialogue, and reactions. Do not state the labels.\n";
 
     // PRIMARY: the Life Card details lead. This is story-driving context the narrator
     // should USE in the prose. (Front-loading the write-back task made the model
     // deprioritize the card, so the card and its nudge always come first now.)
     if (fresh.length) {
-      body += "\nFRESH PRESSURE (new this turn -- treat as CURRENT and let it shape THIS scene):\n" +
+      body += "\nFRESH PRESSURE (new this turn -- you MUST act on this in THIS scene now):\n" +
         fresh.map(renderEntry).join("\n\n") + "\n";
     }
     if (ongoing.length) {
@@ -1350,8 +1374,8 @@ function LivingCharacters(hook, hookText) {
 
     // PRIMARY: single forceful story-driver nudge. Not subtle.
     body += (mode === "strict")
-      ? "\nUse these now. Each active life thread is affecting this scene -- let it create visible consequences: dialogue, gossip, tension, attraction, avoidance, conflict, reactions, choices, relationship shifts. Do not state the labels.\n"
-      : "\nUse these now. These pressures are live and influencing the current story even when the characters are off-screen -- let them surface as visible consequences: dialogue, gossip, shifting moods, attitudes, alliances, tension, attraction, avoidance, conflict, reactions, choices, relationship shifts. Do not state the labels.\n";
+      ? "\n### Use these now. Each active life thread is REQUIRED to create a visible consequence in this scene -- dialogue, gossip, tension, attraction, avoidance, conflict, reactions, choices, or a relationship shift. Do not state the labels.\n"
+      : "\n### Use these now. These pressures are live and drive the current story even when the characters are off-screen -- they are REQUIRED to surface as visible consequences: dialogue, gossip, shifting moods, attitudes, alliances, tension, attraction, avoidance, conflict, reactions, choices, relationship shifts. Do not state the labels.\n";
 
     // SECONDARY: trailing write-back, only on reminder/checkpoint turns, and visibly
     // SEPARATED from the story context above (a divider + "does not change the story")
@@ -1569,7 +1593,60 @@ function LivingCharacters(hook, hookText) {
   // For normal output (real visible text present) it returns that text unchanged.
   function safeVisibleOutput(value) {
     const out = cleanText(stripBlocks(value));
-    return out || "\u200B";
+    return out || CFG.EMPTY_OUTPUT_FALLBACK;
+  }
+
+  // True when `s` has no VISIBLE content: null/undefined, or only whitespace and/or
+  // zero-width characters. NOTE: \u200B (zero-width space) is NOT matched by \s, so it is
+  // listed explicitly here -- otherwise a "fallback" return would look non-empty and a
+  // genuinely empty turn would slip through unlogged.
+  function isBlank(s) {
+    if (s == null) return true;
+    return String(s).replace(/[\s\u200B\u200C\u200D\uFEFF]/g, "").length === 0;
+  }
+
+  // Records + logs WHICH return branch produced the safe Unicode fallback, so an empty
+  // response can be traced to its source. Always emits a console line (visible in the AID
+  // script console) and stashes the reason in state for the debug card. Never throws.
+  function debugFallback(branch, detail) {
+    const msg = "LivingCharacters EMPTY-FALLBACK [" + branch + "]" + (detail ? " :: " + detail : "");
+    try {
+      if (typeof log === "function") log(msg);
+      else if (typeof console !== "undefined" && console && typeof console.log === "function") console.log(msg);
+    } catch (e) {}
+    try {
+      const cg = ensureState();
+      cg.lastFallback = msg + " (turn " + (cg.turn || 0) + ")";
+    } catch (e) {}
+  }
+
+  // FINAL OUTPUT BOUNDARY for every hook return. Guarantees a non-empty, non-whitespace,
+  // non-null string so AI Dungeon never reports an empty response (output) or "Unable to
+  // run scenario scripts" (input). This is the single authoritative place the Unicode
+  // fallback is applied -- helpers may return "" freely; this reconciles it.
+  //   - output: must carry NO private tags AND keep its LEADING separator (the space/newline
+  //     that joins this continuation to the prior story); blank -> fallback.
+  //   - input/context: blank -> restore the untouched original if it has content, else fallback.
+  function finalizeResult(hook, result, original) {
+    const out = (typeof result === "string") ? result : (result == null ? "" : String(result));
+    if (hook === "output") {
+      // Remove private tags WITHOUT trimming (stripSelectedBlocks does not call cleanText),
+      // capture the model's leading separator, then tidy the BODY and re-attach one
+      // normalized separator. This stops the narrator's text jamming onto the previous text.
+      const stripped = stripSelectedBlocks(out, ["LC_PRIVATE", "LC_SEED", "LC_MEMORY", "LC_CARDS", "CG_PRIVATE", "CG_SEED", "CG_MEMORY", "CG_CARDS"]);
+      const visible = leadSeparator(leadingWhitespace(stripped)) + cleanText(stripped);
+      if (!isBlank(visible)) return visible;
+      debugFallback("finalize:output", "blank visible output after strip");
+      return CFG.EMPTY_OUTPUT_FALLBACK;
+    }
+    if (!isBlank(out)) return out;
+    // Blank input/context: prefer the original text (don't destroy a real turn), else fallback.
+    if (!isBlank(original)) {
+      debugFallback("finalize:" + hook + ":restore-original", "blank result; restored original text");
+      return String(original);
+    }
+    debugFallback("finalize:" + hook + ":unicode", "blank result and blank original");
+    return CFG.EMPTY_OUTPUT_FALLBACK;
   }
 
 
@@ -1873,10 +1950,19 @@ function LivingCharacters(hook, hookText) {
     //   recent -> wider recent-scene window (current + just-mentioned).
     const tight = recent.length > CFG.THOUGHT_SCENE_TIGHT_CHARS ? recent.slice(-CFG.THOUGHT_SCENE_TIGHT_CHARS) : recent;
     const text = (TC.sceneMode === "recent") ? recent : tight;
+    // The first-person POV lead (protagonist) is rarely written by name in the scene, but
+    // is always present. When PROTAGONIST_ALWAYS_PRESENT is on, keep the protagonist
+    // eligible even when unnamed -- mirroring the Life Card scene detector -- so an unnamed
+    // lead like Sam can still be selected for a thought. Everyone else still needs a
+    // whole-word name match in the current scene.
     // Fallback prevention: do NOT fall back to the full roster unless THOUGHT_SCENE_MODE
     // is explicitly "roster". If nobody is scene-relevant, return [] and the caller makes
     // no thought this turn -- an off-screen thought would feel disconnected.
-    return roster.filter(function(n) { return containsWholeWord(text, n); });
+    const pKey = LC.protagonist ? cleanName(LC.protagonist).toLowerCase() : "";
+    return roster.filter(function(n) {
+      if (pKey && LC.protagonistAlwaysPresent && cleanName(n).toLowerCase() === pKey) return true;
+      return containsWholeWord(text, n);
+    });
   }
 
   // Decide whether to fire a thought this turn; if so, select a character, stamp the
@@ -1895,28 +1981,61 @@ function LivingCharacters(hook, hookText) {
     const name = choose(cands);
     ts.pendingChar = name;
     ts.lastThoughtTurn = turn;
-    // Simple, reliable ask: ONE leading first-person parenthetical, then the story.
-    // Parenthetical capture is the only thought mechanism -- no LC_MEMORY/XML, no fallback
-    // formats, no validation.
+    // Simple, reliable ask: ONE leading first-person parenthetical, name-LABELED so the
+    // thinker is unambiguous in a first-person scene (e.g. "(Sam: I ...)"), then the story.
+    // Parenthetical capture is the only thought mechanism -- no LC_MEMORY/XML and no fallback
+    // formats; capture only reads the label to file the thought under the right character.
     return "\n\n<LC_PRIVATE>\n" +
-      "Begin your reply with ONE short parenthetical: " + name + "'s own private thought right now, in first person (I / me / my), one sentence. Then continue the story normally. The parenthetical is hidden from the player automatically. Format: (I ...)\n" +
+      "Begin your reply with ONE short parenthetical: " + name + "'s own private thought right now, written in first person (I / me / my) and LABELED with their name, one sentence. Then continue the story normally. The parenthetical is hidden from the player automatically. Format: (" + name + ": I ...)\n" +
       "</LC_PRIVATE>";
   }
 
-  // Output-hook capture: ONLY when a thought was asked this turn. Captures a single
-  // LEADING parenthetical (optionally stripping a "Name:" prefix), appends it to the
-  // character's Thought Card, and strips it from the visible story. No leading
-  // parenthetical -> output untouched. Light only; never touches Life Cards.
+  // Resolve a free-text name label (from a "Name:" thought prefix) to a configured Thought
+  // character, case-insensitive and whitespace-normalized. Returns the canonical roster
+  // name, or "" if the label is not a known Thought character. Used to ATTRIBUTE a labeled
+  // thought to the correct card instead of blindly trusting the asked character.
+  function resolveThoughtCharacter(label, TC) {
+    const want = cleanName(label).toLowerCase();
+    if (!want) return "";
+    const roster = (TC && TC.characters) || [];
+    for (let i = 0; i < roster.length; i++) {
+      if (cleanName(roster[i]).toLowerCase() === want) return roster[i];
+    }
+    return "";
+  }
+
+  // Output-hook capture: ONLY when a thought was asked this turn. Captures a single LEADING
+  // parenthetical, reads its "Name:" label to decide WHOSE thought it is, appends it to that
+  // character's Thought Card, and strips it from the visible story. No leading parenthetical
+  // -> output untouched. Light only; never touches Life Cards.
+  //   - If the label names a known Thought character, file under THAT character. This is how
+  //     an unnamed POV lead like Sam reclaims a thought the model voiced as Sam, even when
+  //     the system asked a named bystander -- it stops Banjo getting Sam's thoughts.
+  //   - Only fall back to the asked character (ts.pendingChar) when there is no valid label.
+  //   - The label is used for routing, then stripped from the stored text so the journal
+  //     stays clean first-person ("I ...").
   function captureThought(original) {
     const ts = ensureThoughtState();
-    const name = ts.pendingChar;
-    if (!name) return original;
+    if (!ts.pendingChar) return original; // only when a thought was asked this turn
     const m = /^\s*\(([^)]*)\)/.exec(original);
     if (!m) return original;
-    const t = cleanText(m[1]).replace(/^[A-Za-z][\w '\-]{0,30}:\s*/, "").trim();
-    if (!t) return original;
-    appendThought(name, t, buildThoughtConfig());
-    return original.slice(m[0].length); // strip the leading parenthetical only
+    let inner = cleanText(m[1]);
+    if (!inner) return original;
+    const TC = buildThoughtConfig();
+    let target = ts.pendingChar; // default: the character we asked this turn
+    const lbl = /^([A-Za-z][\w '\-]{0,30}):\s*/.exec(inner);
+    if (lbl) {
+      const matched = resolveThoughtCharacter(lbl[1], TC);
+      if (matched) target = matched;             // valid, known label wins over pendingChar
+      inner = inner.slice(lbl[0].length).trim();  // route by the label, then drop it from text
+    }
+    if (!inner) return original;
+    appendThought(target, inner, TC);
+    // Strip the leading parenthetical. The narration that followed it must keep a separator
+    // so it does not jam onto the prior story text; if the model left no space after the
+    // ")", add a single one. (finalizeResult then preserves whatever separator is present.)
+    const rest = original.slice(m[0].length);
+    return (rest && !/^\s/.test(rest)) ? " " + rest : rest;
   }
 
   function handleOutput(rawText) {
@@ -1951,11 +2070,12 @@ function LivingCharacters(hook, hookText) {
 
     syncCards();
     updateDebugCard();
-    const cleaned = stripBlocks(visibleText);
-    // Safety fallback only: never return empty/whitespace (would trigger AI Dungeon's
-    // "empty response" error). safeVisibleOutput re-strips to guarantee no private tag
-    // can leak via the fallback, and returns a zero-width space if nothing visible remains.
-    return safeVisibleOutput(cleaned || visibleText);
+    // Return the post-thought text WITHOUT trimming. The final output boundary
+    // (finalizeResult) removes private tags, PRESERVES the model's leading separator so the
+    // narration does not jam onto the prior story text, tidies the body, and applies the
+    // empty/whitespace Unicode fallback -- so every return path (normal, early-exit, error)
+    // is handled in one place.
+    return visibleText;
   }
 
   function handleContext(rawText) {
@@ -2014,8 +2134,15 @@ function LivingCharacters(hook, hookText) {
     else if (hook === "input") result = handleInput(text);
     else result = text;
   } catch (e) {
-    result = text || " ";
+    // A thrown hook must not collapse to "" or a bare space (both read as an empty
+    // response in AID). Start from the original text; finalizeResult below guarantees a
+    // safe non-empty return and re-strips private tags for the output hook.
+    debugFallback("catch:" + hook, (e && e.message) ? e.message : String(e));
+    result = text;
   }
+  // FINAL OUTPUT BOUNDARY: every hook returns through here, so no path can hand AID an
+  // empty / whitespace-only / null / undefined value. Logs which branch fell back.
+  result = finalizeResult(hook, result, text);
   setGlobalText(result);
   return result;
 }

@@ -222,6 +222,8 @@ Thought Cards use an internal storage safety buffer:
 
 The 💭 marker means "most recently updated." Living Characters scans Thought Cards and clears existing 💭 markers before marking the newest updated card. Only one Thought Card should display 💭 at a time.
 
+Thought Cards now use stricter capture instructions and character labels so thoughts are filed to the correct character's card more reliably. This helps prevent rare cases where a thought could attach to the wrong person.
+
 ---
 
 ## Thought Card Model Notes

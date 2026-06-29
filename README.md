@@ -66,11 +66,15 @@ Thought Cards use an internal storage safety buffer during Entry -> Notes rollov
 
 The 💭 marker shows the most recently updated Thought Card. Living Characters scans all Thought Cards and clears older 💭 markers before marking the newest updated card, so only one Thought Card should show 💭 at a time.
 
+Thought Cards now use stricter capture instructions and character labels so thoughts are filed to the correct character's card more reliably across models.
+
 ---
 
 ## Troubleshooting
 
 If AI Dungeon shows **"The AI service returned an empty response"**, update to the latest Living Characters library. The script now returns a zero-width fallback character when hidden/private output is stripped and nothing visible remains. This is meant to reduce empty-response errors, especially seen during Nova testing, without showing private Thought Card text to the player.
+
+The latest release also adds another final-output safeguard to further reduce blank narrator responses after hidden/private output is removed.
 
 ---
 
