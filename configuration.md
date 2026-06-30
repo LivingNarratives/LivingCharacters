@@ -81,7 +81,7 @@ Controls how often the protagonist is allowed to participate in Living Character
 
 Use `normal` for most scenarios.
 
-In second-person stories, the protagonist is often written as "you" instead of by name. Living Characters includes a built-in `YOU` fallback trigger to help detect the protagonist without requiring extra trigger setup.
+In second-person stories, the protagonist is often written as "you" instead of by name. Living Characters includes a built-in `YOU` fallback trigger for Life Card injection. If neither participant on an active Life Card has been referenced yet, the script can use the protagonist's `YOU` reference so the relevant Life Card is still injected into model context instead of waiting for one participant to be mentioned.
 
 ---
 
@@ -226,7 +226,7 @@ The 💭 marker means "most recently updated." Living Characters scans Thought C
 
 Thought Cards now use stricter capture instructions and character labels so thoughts are filed to the correct character's card more reliably. This helps prevent rare cases where a thought could attach to the wrong person.
 
-The latest Thought Card update also reduces repeated thoughts, especially on Gemma, and fixes Hearthfire cases where thoughts could bleed into another character's Thought Card. The script now strongly favors explicit character names over pronouns such as "he" or "she" when deciding where to file a thought.
+The latest Thought Card update also reduces repeated thoughts, especially on Gemma, and fixes Hearthfire cases where Thought Card content could bleed into the AI narrator's generated response. The script now strongly favors explicit character names over pronouns such as "he" or "she" when deciding where to file a thought.
 
 ---
 

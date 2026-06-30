@@ -68,9 +68,9 @@ The 💭 marker shows the most recently updated Thought Card. Living Characters 
 
 Thought Cards now use stricter capture instructions and character labels so thoughts are filed to the correct character's card more reliably across models.
 
-The latest Thought Card update reduces thought bleed between characters, improves repeated-thought handling, and strongly favors explicit character names over pronouns when filing thoughts. The Hearthfire bleed issue is confirmed fixed, and the repetition fix is especially helpful on Gemma.
+The latest Thought Card update fixes cases where Thought Card content could bleed into the AI narrator's generated response, particularly on Hearthfire. It also improves repeated-thought handling and strongly favors explicit character names over pronouns when filing thoughts. The repetition fix is especially helpful on Gemma.
 
-Living Characters also includes a `YOU` fallback trigger so the protagonist can still be detected reliably in second-person narration without extra setup.
+Living Characters also includes a `YOU` fallback trigger for Life Card injection. If neither participant on an active Life Card has been referenced yet, the script can use the protagonist's `YOU` reference so the relevant Life Card is still injected into model context instead of waiting for one participant to be mentioned.
 
 ---
 
