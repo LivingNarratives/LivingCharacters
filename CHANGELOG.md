@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.59 - Thought Cards Quality and Trigger Update
+
+### Fixed
+
+- Fixed Thought Cards occasionally bleeding into other characters' thoughts on Hearthfire. This is confirmed fixed on Hearthfire and may also improve behavior on other supported models.
+- Fixed excessive Thought Card repetition, particularly on Gemma, where repeated thoughts were most noticeable.
+- Fixed Thought Card attribution so thoughts now preferentially attach to the correct character name instead of falling back to pronouns such as "he" or "she." Pronouns may still appear in some edge cases due to model output, but the script now strongly favors explicit character names.
+
+### Added
+
+- Added a fallback trigger for `YOU`. Since the protagonist is almost always referenced as "you" during narration, this provides a reliable fallback to help detect the protagonist when other trigger words are absent or not included in the model's context. No additional trigger configuration is required.
+
 ## 2.58 - Thought Cards Reliability Update
 
 - Fixed Thought Cards so captured thoughts are written to the correct character's Thought Card instead of occasionally attaching to the wrong person.

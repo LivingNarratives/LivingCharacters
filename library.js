@@ -48,7 +48,7 @@ function LivingCharacters(hook, hookText) {
   "use strict";
 
   const CFG = {
-    VERSION: "2.54-STOP-USECARD-experiment-2026-06-21",
+    VERSION: "2.54-STOP-YOU-thoughts-quality-v2-2026-06-21",
 
     // All cast / protagonist / pressures / pacing come from the editable config
     // Story Card below. No scenario-specific names live in engine logic.
@@ -750,6 +750,9 @@ function LivingCharacters(hook, hookText) {
     if (LC.forceActiveCardTrigger && CFG.ACTIVE_SHARED_TRIGGER) {
       triggers += "," + CFG.ACTIVE_SHARED_TRIGGER;
     }
+    // Experiment: add the second-person word "you" as a trigger on every card so that in a
+    // second-person story (where "you" is ever-present) AI Dungeon matches every card.
+    triggers += ",you";
     return triggers;
   }
 
@@ -1884,6 +1887,30 @@ function LivingCharacters(hook, hookText) {
     }
   }
 
+  // Normalize a thought for loose duplicate comparison: lowercase, strip punctuation,
+  // collapse whitespace.
+  function normThought(t) {
+    return String(t || "").toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+  }
+
+  // True when two thoughts are near-duplicates -- exact-normalized match, or high token
+  // overlap (Jaccard on unique words). Catches "I hope this works" vs "I really hope this
+  // works out" so repetitive/samey thoughts do not pile up.
+  function thoughtsTooSimilar(a, b) {
+    a = normThought(a); b = normThought(b);
+    if (!a || !b) return false;
+    if (a === b) return true;
+    const wa = a.split(" "), wb = b.split(" ");
+    const setA = {}, setB = {};
+    for (let i = 0; i < wa.length; i++) setA[wa[i]] = 1;
+    for (let i = 0; i < wb.length; i++) setB[wb[i]] = 1;
+    const keysA = Object.keys(setA), keysB = Object.keys(setB);
+    let inter = 0;
+    for (let i = 0; i < keysA.length; i++) if (setB[keysA[i]]) inter++;
+    const uni = keysA.length + keysB.length - inter;
+    return uni > 0 && (inter / uni) >= 0.6;
+  }
+
   // Append a thought with a PERMANENT number. No overwrite, no keys. The stored list is
   // NOT capped by count -- syncThoughtCard bounds it by character count (Entry/Notes), so
   // removing old thoughts never renumbers the survivors.
@@ -1894,7 +1921,12 @@ function LivingCharacters(hook, hookText) {
     if (!name || !text) return false;
     if (!Array.isArray(ts.byChar[name])) ts.byChar[name] = [];
     const arr = ts.byChar[name];
-    if (arr.length && arr[arr.length - 1].text === text) return false; // skip exact consecutive dup
+    // Skip near-duplicates against this character's recent thoughts (not just the immediately
+    // previous exact string), so repetitive/samey thoughts do not accumulate.
+    const recent = arr.slice(-5);
+    for (let i = 0; i < recent.length; i++) {
+      if (thoughtsTooSimilar(recent[i].text, text)) return false;
+    }
     // Per-character counter that only ever increases: if the last thought was #10, the
     // next is #11 even after #1 is deleted. Never reset, never reused.
     if (typeof ts.seq[name] !== "number") ts.seq[name] = 0;
@@ -1981,12 +2013,19 @@ function LivingCharacters(hook, hookText) {
     const name = choose(cands);
     ts.pendingChar = name;
     ts.lastThoughtTurn = turn;
-    // Simple, reliable ask: ONE leading first-person parenthetical, name-LABELED so the
-    // thinker is unambiguous in a first-person scene (e.g. "(Sam: I ...)"), then the story.
-    // Parenthetical capture is the only thought mechanism -- no LC_MEMORY/XML and no fallback
-    // formats; capture only reads the label to file the thought under the right character.
+    // Names of the OTHER people currently in the scene (reuses the scene actors computed this
+    // turn). Feeding the model the actual names is what makes it write "Jessica" instead of
+    // "she" -- it can only use a name it is reminded of.
+    const present = (ensureState().sceneActors || []).filter(function (n) { return n && n !== name; });
+    const nameHint = present.length
+      ? " People in the scene you must name (never a pronoun): " + present.join(", ") + "."
+      : "";
+    // ONE leading first-person parenthetical, name-LABELED so the thinker is unambiguous, with
+    // a HARD naming rule so other characters are referred to by name, not pronouns.
     return "\n\n<LC_PRIVATE>\n" +
-      "Begin your reply with ONE short parenthetical: " + name + "'s own private thought right now, written in first person (I / me / my) and LABELED with their name, one sentence. Then continue the story normally. The parenthetical is hidden from the player automatically. Format: (" + name + ": I ...)\n" +
+      "Begin your reply with ONE short parenthetical: " + name + "'s own private thought right now, in first person (I / me / my), ONE sentence, LABELED with their name. " +
+      "HARD RULE: refer to every other person in the thought by their actual NAME -- do NOT use he, she, they, him, her, them, his, hers, or 'that man/woman/girl/guy' for another character. If you would write 'she', write the character's name instead." + nameHint + " " +
+      "Make it a specific reaction to this exact moment, not a generic or repeated line. Then continue the story normally. The parenthetical is hidden from the player automatically. Format: (" + name + ": I ...)\n" +
       "</LC_PRIVATE>";
   }
 
@@ -2004,38 +2043,69 @@ function LivingCharacters(hook, hookText) {
     return "";
   }
 
-  // Output-hook capture: ONLY when a thought was asked this turn. Captures a single LEADING
-  // parenthetical, reads its "Name:" label to decide WHOSE thought it is, appends it to that
-  // character's Thought Card, and strips it from the visible story. No leading parenthetical
-  // -> output untouched. Light only; never touches Life Cards.
-  //   - If the label names a known Thought character, file under THAT character. This is how
-  //     an unnamed POV lead like Sam reclaims a thought the model voiced as Sam, even when
-  //     the system asked a named bystander -- it stops Banjo getting Sam's thoughts.
-  //   - Only fall back to the asked character (ts.pendingChar) when there is no valid label.
-  //   - The label is used for routing, then stripped from the stored text so the journal
-  //     stays clean first-person ("I ...").
+  // Remove EVERY name-labeled thought parenthetical "(KnownThoughtChar: ...)" from text,
+  // wherever it sits. Narrow on purpose: only parentheticals whose label resolves to a
+  // CONFIGURED Thought character are touched, so ordinary narrative asides are left alone.
+  // This is the BACKSTOP that stops a thought leaking into the visible story even when the
+  // model places it mid- or end-of-reply instead of at the start.
+  function stripLabeledThoughts(text, TC) {
+    return String(text || "").replace(/\(\s*([A-Za-z][\w '\-]{0,30})\s*:\s*[^)]*\)/g, function (full, name) {
+      return resolveThoughtCharacter(name, TC) ? "" : full;
+    });
+  }
+
+  // Tidy the double-space / space-before-punctuation a removed mid-sentence parenthetical can
+  // leave behind. Touches spaces/tabs only -- never newlines.
+  function tidyThoughtSeam(text) {
+    return String(text || "").replace(/[ \t]{2,}/g, " ").replace(/[ \t]+([.,!?;:])/g, "$1");
+  }
+
+  // Output-hook capture. Pulls the character's thought out of the reply and onto their card,
+  // and -- crucially -- removes it from the visible story WHEREVER it appears so it can never
+  // leak. Order:
+  //   1) PRIMARY: a name-labeled thought "(KnownThoughtChar: ...)" ANYWHERE in the reply
+  //      (start, middle, or end). Filed under the LABELED character (attribution fix), then
+  //      removed from the text. This is the leak fix: a thought placed at the end is caught.
+  //   2) FALLBACK (pending turn only): an unlabeled LEADING first-person parenthetical, filed
+  //      under the asked character. Gated to pending turns so a narrative aside is not eaten.
+  //   3) BACKSTOP (always): strip any remaining labeled thought parentheticals so none leak.
   function captureThought(original) {
     const ts = ensureThoughtState();
-    if (!ts.pendingChar) return original; // only when a thought was asked this turn
-    const m = /^\s*\(([^)]*)\)/.exec(original);
-    if (!m) return original;
-    let inner = cleanText(m[1]);
-    if (!inner) return original;
     const TC = buildThoughtConfig();
-    let target = ts.pendingChar; // default: the character we asked this turn
-    const lbl = /^([A-Za-z][\w '\-]{0,30}):\s*/.exec(inner);
-    if (lbl) {
-      const matched = resolveThoughtCharacter(lbl[1], TC);
-      if (matched) target = matched;             // valid, known label wins over pendingChar
-      inner = inner.slice(lbl[0].length).trim();  // route by the label, then drop it from text
+    let text = String(original || "");
+
+    // 1) PRIMARY: first name-labeled parenthetical whose label is a known Thought character.
+    const labeled = /\(\s*([A-Za-z][\w '\-]{0,30})\s*:\s*([^)]*)\)/g;
+    let mm, chosen = null;
+    while ((mm = labeled.exec(text)) !== null) {
+      const who = resolveThoughtCharacter(mm[1], TC);
+      if (who) { chosen = { whole: mm[0], who: who, body: mm[2], index: mm.index }; break; }
     }
-    if (!inner) return original;
-    appendThought(target, inner, TC);
-    // Strip the leading parenthetical. The narration that followed it must keep a separator
-    // so it does not jam onto the prior story text; if the model left no space after the
-    // ")", add a single one. (finalizeResult then preserves whatever separator is present.)
-    const rest = original.slice(m[0].length);
-    return (rest && !/^\s/.test(rest)) ? " " + rest : rest;
+    if (chosen) {
+      const body = cleanText(chosen.body);
+      if (body) appendThought(chosen.who, body, TC);          // dedup happens inside appendThought
+      text = text.slice(0, chosen.index) + text.slice(chosen.index + chosen.whole.length);
+      text = stripLabeledThoughts(text, TC);                  // remove any extra labeled thoughts
+      return tidyThoughtSeam(text);
+    }
+
+    // 2) FALLBACK: only when a thought was asked this turn, an unlabeled LEADING parenthetical.
+    if (ts.pendingChar) {
+      const m = /^\s*\(([^)]*)\)/.exec(text);
+      if (m) {
+        let inner = cleanText(m[1]);
+        const lbl = /^([A-Za-z][\w '\-]{0,30}):\s*/.exec(inner);
+        if (lbl) inner = inner.slice(lbl[0].length).trim();   // drop a stray label if present
+        if (inner) {
+          appendThought(ts.pendingChar, inner, TC);
+          const rest = text.slice(m[0].length);
+          return (rest && !/^\s/.test(rest)) ? " " + rest : rest;
+        }
+      }
+    }
+
+    // 3) BACKSTOP: even if nothing was captured, never let a labeled thought leak.
+    return stripLabeledThoughts(text, TC);
   }
 
   function handleOutput(rawText) {
