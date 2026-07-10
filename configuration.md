@@ -24,6 +24,7 @@ This card controls:
 - `CHARACTERS` / roster
 - `PRESSURES`
 - `LIFE_CARD_INTERVAL`
+- `TARGET_COOLDOWN`
 - `MAX_ACTIVE_CARDS`
 - `SCENE_RELEVANCE`
 
@@ -51,6 +52,8 @@ trust
 curiosity
 
 LIFE_CARD_INTERVAL: 15
+
+TARGET_COOLDOWN: 3
 
 MAX_ACTIVE_CARDS: 2
 
@@ -140,6 +143,20 @@ How often the system tries to create new Life Cards.
 
 **Example:**
 `LIFE_CARD_INTERVAL: 15`
+
+---
+
+## TARGET_COOLDOWN
+
+Prevents the same character from immediately generating another Life Card after creating one.
+
+This helps distribute Life Cards more evenly across the cast and reduces the same character repeatedly being selected.
+
+**Default:**
+`TARGET_COOLDOWN: 3`
+
+**Example:**
+`TARGET_COOLDOWN: 3`
 
 ---
 

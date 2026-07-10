@@ -105,6 +105,7 @@ This card controls important settings like:
 - Character roster
 - Pressures
 - Life Card interval
+- Target cooldown
 - Maximum active Life Cards
 - Scene relevance
 
@@ -129,6 +130,7 @@ Ariel
 Zephyr
 
 LIFE_CARD_INTERVAL: 15
+TARGET_COOLDOWN: 3
 MAX_ACTIVE_CARDS: 2
 
 SCENE_RELEVANCE: off
