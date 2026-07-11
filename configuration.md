@@ -1,11 +1,12 @@
 # Configuration Card Setup
 
-Living Characters uses **two separate Story Cards**:
+Living Characters uses **three separate Story Cards**:
 
 - **LIVING CHARACTERS CONFIG** = Life Cards
+- **LIVING CHARACTERS RELATIONSHIPS** = optional relationship targeting for Life Cards
 - **THOUGHT CARDS CONFIG** = Thought Cards
 
-Keep these settings separate. Do not put Thought Card settings inside **LIVING CHARACTERS CONFIG**.
+Keep these settings separate. Do not put Relationship or Thought Card settings inside **LIVING CHARACTERS CONFIG**.
 
 ---
 
@@ -26,7 +27,9 @@ This card controls:
 - `LIFE_CARD_INTERVAL`
 - `TARGET_COOLDOWN`
 - `MAX_ACTIVE_CARDS`
-- `SCENE_RELEVANCE`
+- `SCENE_RELEVANCE_MODE`
+
+Relationship targeting is configured separately in **LIVING CHARACTERS RELATIONSHIPS**.
 
 Thought Cards are configured separately in **THOUGHT CARDS CONFIG**.
 
@@ -57,7 +60,7 @@ TARGET_COOLDOWN: 3
 
 MAX_ACTIVE_CARDS: 2
 
-SCENE_RELEVANCE: off
+SCENE_RELEVANCE_MODE: off
 ```
 
 ---
@@ -173,19 +176,77 @@ Maximum number of active Life Cards at once.
 
 ---
 
-## SCENE_RELEVANCE
+## SCENE_RELEVANCE_MODE
 
 Controls whether Life Cards must involve characters currently in the scene.
 
-### Off
-`SCENE_RELEVANCE: off`
+### Off (Recommended)
+`SCENE_RELEVANCE_MODE: off`
 
-Allows off-screen social development and world progression.
+Characters may generate Life Cards regardless of scene participation. This provides the most natural autonomous behavior and is the recommended setting for most adventures.
+
+### Hybrid
+`SCENE_RELEVANCE_MODE: hybrid`
+
+Prefers characters in the current scene while allowing fallback behavior.
 
 ### Strict
-`SCENE_RELEVANCE: strict`
+`SCENE_RELEVANCE_MODE: strict`
 
-Requires at least one character from the Life Card to be present in the current scene.
+Restricts Life Cards to scene participants only. This is intended for creators who specifically want scene-local interactions.
+
+The older `SCENE_RELEVANCE` name is still accepted, but new examples use `SCENE_RELEVANCE_MODE`.
+
+---
+
+## Relationship Targeting
+
+Relationship targeting is optional. It uses a separate Story Card named exactly:
+
+**LIVING CHARACTERS RELATIONSHIPS**
+
+Use this card when you want specific characters to generate Life Cards toward specific targets.
+
+Relationship rules go beneath the `Relationships:` heading:
+
+```
+Relationships:
+Jessica>Sam=jealousy,attraction
+Jessica > Sam = jealousy,attraction
+```
+
+Both compact and spaced syntax are supported.
+
+If you leave the pressure list out, Living Characters uses the global pressure pool from **LIVING CHARACTERS CONFIG**:
+
+```
+Relationships:
+Jessica > Sam
+```
+
+The example section above the `Relationships:` heading is documentation only. Only lines beneath the `Relationships:` heading are treated as active relationship rules.
+
+Older relationship cards without a `Relationships:` heading remain backward compatible.
+
+Unknown character names are handled safely. Relationship-only names can be used without duplicating them in the main roster.
+
+---
+
+## Round Robin Scheduling
+
+Living Characters alternates owner selection between two systems:
+
+- Relationship owner selection
+- Random owner selection
+
+On a relationship phase, Living Characters tries relationship owners first. If no relationship owner is eligible, it falls back to random owners.
+
+On a random phase, Living Characters tries random owners first. If no random owner is eligible, it falls back to relationship owners.
+
+The phase only advances after a Life Card is successfully created. Skipped turns, cooldowns, active card limits, or failed attempts do not advance the schedule.
+
+This gives authored relationship cards and randomized Life Cards equal opportunities while still allowing graceful fallback when one pool has no eligible owners.
+
 
 ---
 

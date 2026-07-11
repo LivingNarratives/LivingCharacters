@@ -31,6 +31,8 @@ Living Characters adds two lightweight systems to AI Dungeon:
 
 Life Cards create autonomous social threads between characters so your story world stops revolving only around the protagonist.
 
+Life Cards can run from the general cast or from optional relationship rules in the **LIVING CHARACTERS RELATIONSHIPS** card. Living Characters alternates between relationship owner selection and random owner selection, with fallback when one pool has no eligible owners.
+
 | Without Living Characters       | With Life Cards                             |
 | ------------------------------- | ------------------------------------------- |
 | Everyone waits for the player.  | NPCs develop their own drama.               |
@@ -71,6 +73,8 @@ Thought Cards now use stricter capture instructions and character labels so thou
 The latest Thought Card update fixes cases where Thought Card content could bleed into the AI narrator's generated response, particularly on Hearthfire. It also improves repeated-thought handling and strongly favors explicit character names over pronouns when filing thoughts. The repetition fix is especially helpful on Gemma.
 
 Living Characters also includes a `YOU` fallback trigger for Life Card injection. If neither participant on an active Life Card has been referenced yet, the script can use the protagonist's `YOU` reference so the relevant Life Card is still injected into model context instead of waiting for one participant to be mentioned.
+
+For most adventures, use `SCENE_RELEVANCE_MODE: off`. This allows autonomous Life Cards to develop naturally even when characters are not currently in the scene.
 
 ---
 

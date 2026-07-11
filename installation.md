@@ -108,6 +108,7 @@ This card controls important settings like:
 - Target cooldown
 - Maximum active Life Cards
 - Scene relevance
+- Optional relationship targeting
 
 ---
 
@@ -133,7 +134,7 @@ LIFE_CARD_INTERVAL: 15
 TARGET_COOLDOWN: 3
 MAX_ACTIVE_CARDS: 2
 
-SCENE_RELEVANCE: off
+SCENE_RELEVANCE_MODE: off
 
 PRESSURES:
 friendship
@@ -159,6 +160,28 @@ Winter
 ```
 
 `Characters:` is a label, not a character name. Living Characters ignores it when reading the roster.
+
+---
+
+## Optional: Configure Relationships
+
+Relationships use a separate Story Card named exactly:
+
+**LIVING CHARACTERS RELATIONSHIPS**
+
+Add relationship rules beneath the `Relationships:` heading:
+
+```
+Relationships:
+Jessica>Sam=jealousy,attraction
+Jessica > Sam = jealousy,attraction
+```
+
+If you do not include a pressure list, Living Characters uses the global pressure pool from **LIVING CHARACTERS CONFIG**.
+
+The example section above `Relationships:` is documentation only.
+
+Living Characters alternates between relationship owner selection and random owner selection. If one pool has no eligible owners, it automatically falls back to the other.
 
 ---
 
