@@ -48,13 +48,23 @@ function LivingCharacters(hook, hookText) {
   "use strict";
 
   const CFG = {
-    VERSION: "2.54-STOP-YOU-thoughts-quality-v2-2026-06-21",
+    VERSION: "2.57-relationships-section-2026-07-11",
 
     // All cast / protagonist / pressures / pacing come from the editable config
     // Story Card below. No scenario-specific names live in engine logic.
     CONFIG_CARD_TITLE: "LIVING CHARACTERS CONFIG",
     CONFIG_CARD_KEY: "living-characters-config",
     CONFIG_CARD_TYPE: "Config",
+
+    // RELATIONSHIPS live on their OWN optional Story Card, kept separate from the
+    // engine-settings config card above (engine config vs. story relationship data).
+    // The key is non-matching so the card is NEVER injected into context; the card is
+    // found by key OR title, so a user only needs to match the TITLE. It is auto-created
+    // as a comments-only template (zero active rules = today's behavior) so users can
+    // discover and edit it. See parseRelationshipRules for the line format.
+    REL_CARD_TITLE: "LIVING CHARACTERS RELATIONSHIPS",
+    REL_CARD_KEY: "living-characters-relationships",
+    REL_CARD_TYPE: "Relationships",
     // Old config cards used this exact NOTES text (not a roster). Recognized so it
     // is not mistaken for character names during the NOTES-roster migration.
     LEGACY_CONFIG_NOTES: "Living Characters setup. Edit cast, protagonist, pressures, and pacing here.",
@@ -95,7 +105,7 @@ function LivingCharacters(hook, hookText) {
     //   "strict" - only scene-relevant cards (an involved NPC is present)
     //   "off"    - any active card (off-screen threads usable as world-state)
     //   "hybrid" - scene-relevant first, then fill remaining slots off-screen
-    SCENE_RELEVANCE_MODE: "strict",
+    SCENE_RELEVANCE_MODE: "off",
 
     // HARD cap on simultaneously-open Life threads.
     // Config can choose 1 or 2 active cards.
@@ -195,6 +205,13 @@ function LivingCharacters(hook, hookText) {
     // character can be selected again), not in turns.
     DEFAULT_TARGET_COOLDOWN: 3,
 
+    // Seed dedup TTL: a used owner|target|pressure signature blocks re-seeding for
+    // this many TURNS, then expires. Turn-based ON PURPOSE (not seed-count-based):
+    // with fixed RELATIONSHIPS pairs the blocked signature can be the ONLY possible
+    // seed, and a blocked seed never advances the seed count -- count-based aging
+    // would deadlock. Turns always advance.
+    SEED_DEDUP_TTL_TURNS: 30,
+
     STATUS_VALUES: ["active", "simmering", "surfaced", "dormant", "resolved"]
   };
 
@@ -226,7 +243,7 @@ function LivingCharacters(hook, hookText) {
       "None",
       "",
       "SCENE_RELEVANCE_MODE:",
-      "strict",
+      "off",
       "",
       "PRESSURES:",
       "friendship",
@@ -251,7 +268,11 @@ function LivingCharacters(hook, hookText) {
       "",
       "PROTAGONIST_INVOLVEMENT:",
       "normal",
-      "Options: off | normal | high | always"
+      "Options: off | normal | high | always",
+      "",
+      "( Relationship steering is OPTIONAL and lives on a SEPARATE Story Card )",
+      "( titled \"LIVING CHARACTERS RELATIONSHIPS\". Create that card to steer who )",
+      "( targets whom; leave it out for fully random behavior. See GitHub. )"
     ].join("\n");
   }
 
@@ -300,6 +321,42 @@ function LivingCharacters(hook, hookText) {
       CFG.CONFIG_CARD_KEY,
       defaultConfigEntry(),
       defaultConfigNotes()
+    );
+  }
+
+  // Auto-created template for the SEPARATE relationships card. Only lines BELOW the
+  // "Relationships:" header are parsed as rules (see parseRelationshipRules), so the
+  // preamble and the two example lines above it are NEVER treated as live rules -- a
+  // freshly created card carries ZERO active rules and behavior is identical to before
+  // until the user adds a line under "Relationships:".
+  function defaultRelationshipsEntry() {
+    return [
+      "Per-character targeting",
+      "",
+      "Add your relationships under the \"Relationships:\" heading.",
+      "",
+      "Example:",
+      "Jessica>Sam=jealousy,attraction",
+      "or",
+      "Jessica > Sam = jealousy,attraction",
+      "",
+      "Relationships:",
+      ""
+    ].join("\n");
+  }
+
+  // Auto-create the relationships card if it is missing, so users can discover and edit
+  // it -- mirroring ensureConfigCard/ensureThoughtConfigCard. The template has no rules
+  // under its "Relationships:" header, so it leaves behavior exactly as before.
+  function ensureRelationshipsCard() {
+    const existing = findStoryCardByKeys(CFG.REL_CARD_KEY) || findStoryCardByTitle(CFG.REL_CARD_TITLE);
+    if (existing) return existing;
+    return createOrPatchStoryCard(
+      CFG.REL_CARD_TITLE,
+      CFG.REL_CARD_TYPE,
+      CFG.REL_CARD_KEY,
+      defaultRelationshipsEntry(),
+      "( Optional per-character targeting. Add rules under the Relationships: line. This card never enters the story. )"
     );
   }
 
@@ -438,9 +495,48 @@ function LivingCharacters(hook, hookText) {
     if (involvement !== "off" && involvement !== "normal" && involvement !== "high" && involvement !== "always") involvement = CFG.PROTAGONIST_INVOLVEMENT;
     if (!protagonist) involvement = "normal";
 
+    // RELATIONSHIPS: optional directed steering rules (seed-time only), read from a
+    // SEPARATE Story Card (engine config vs. story relationship data). If the card is
+    // absent, rel is empty and the engine behaves exactly as before. Rules are read
+    // from the card's ENTRY and NOTES (either place works), parsed AFTER the roster and
+    // protagonist so names can canonicalize against the roster.
+    ensureRelationshipsCard();
+    const relCard = findStoryCardByKeys(CFG.REL_CARD_KEY) || findStoryCardByTitle(CFG.REL_CARD_TITLE);
+    const relationshipsCardFound = !!relCard;
+    const relText = relCard ? (String(relCard.entry || "") + "\n" + String(relCard.description || "")) : "";
+    const relLines = relText ? relText.replace(/\r/g, "").split("\n") : [];
+    const rel = parseRelationshipRules(relLines, characters, protagonist);
+
+    // A RELATIONSHIPS section left over in the OLD location (the main config card) is
+    // no longer read here -- flag it so the debug card can tell the user to move it.
+    const mainConfigHadRelationships = /(^|\n)\s*relationships\s*:/i.test(String(card && card.entry) || "");
+
+    // Expand the cast so relationship rules do NOT require duplicating names in the
+    // roster: runtime actors = roster actors + relationship owners + relationship
+    // targets. Relationship-only names become valid characters (scene detection,
+    // random target pools, etc.); the protagonist is still excluded from the NPC cast.
+    // rosterCharacters is captured BEFORE expansion: it is the set eligible for RANDOM
+    // owner selection. Relationship-only TARGETS are added to the cast (valid targets +
+    // scene-detectable) but are NOT random owners unless they also appear here or hold
+    // their own rule -- see ownerCandidates().
+    const rosterActorCount = characters.length;
+    const rosterCharacters = characters.slice();
+    const relNameSet = {};
+    Object.keys(rel.rules).forEach(function(owner) {
+      relNameSet[owner] = true;
+      rel.rules[owner].forEach(function(r) { relNameSet[r.target] = true; });
+    });
+    const relNames = Object.keys(relNameSet).filter(function(n) { return n && n !== protagonist; });
+    let relActorCount = 0;
+    for (let ri = 0; ri < relNames.length; ri++) {
+      if (characters.indexOf(relNames[ri]) === -1) relActorCount++;
+    }
+    characters = unique(characters.concat(relNames)).filter(function(n) { return n && n !== protagonist; });
+
     return {
       protagonist: protagonist,
       characters: characters,
+      rosterCharacters: rosterCharacters,
       rosterSource: rosterSource,
       pressures: pressures,
       activityOff: activityOff,
@@ -453,6 +549,13 @@ function LivingCharacters(hook, hookText) {
       forceActiveCardTrigger: forceActiveCardTrigger,
       protagonistAlwaysPresent: protagonistAlwaysPresent,
       protagonistInvolvement: involvement,
+      relationships: rel.rules,
+      relationshipNotes: rel.notes,
+      relationshipCount: rel.count,
+      relationshipsCardFound: relationshipsCardFound,
+      mainConfigHadRelationships: mainConfigHadRelationships,
+      rosterActorCount: rosterActorCount,
+      relActorCount: relActorCount,
       checkpointEvery: checkpointEvery,
       threadReminderEvery: threadReminderEvery
     };
@@ -474,7 +577,8 @@ function LivingCharacters(hook, hookText) {
         seedCount: 0,
         lastSeedAttemptTurn: 0,
         recentSeeds: [],
-        recentMemory: []
+        recentMemory: [],
+        seedPhase: "relationship"
       };
     }
     const cg = state.chaosGoblinV2;
@@ -482,7 +586,17 @@ function LivingCharacters(hook, hookText) {
     if (!cg.cards || typeof cg.cards !== "object") cg.cards = {};
     if (!cg.actorSeedIndex || typeof cg.actorSeedIndex !== "object") cg.actorSeedIndex = {};
     if (typeof cg.seedCount !== "number") cg.seedCount = 0;
+    // Round-robin phase: which owner type is TRIED first next seed. Default to
+    // "relationship" so the very first generated card prefers a relationship rule.
+    if (cg.seedPhase !== "relationship" && cg.seedPhase !== "random") cg.seedPhase = "relationship";
     if (!Array.isArray(cg.recentSeeds)) cg.recentSeeds = [];
+    // Migrate legacy recentSeeds entries (plain signature strings, never-expiring)
+    // to { sig, turn } stamped with the current turn so they age out normally.
+    for (let i = 0; i < cg.recentSeeds.length; i++) {
+      if (typeof cg.recentSeeds[i] === "string") {
+        cg.recentSeeds[i] = { sig: cg.recentSeeds[i], turn: cg.turn || 0 };
+      }
+    }
     if (!Array.isArray(cg.recentMemory)) cg.recentMemory = [];
     return cg;
   }
@@ -897,7 +1011,7 @@ function LivingCharacters(hook, hookText) {
       const card = findStoryCardByKeys(storyCardIdToken(owners[i]));
       const cP = card ? extractEntryField(card.entry, "PRESSURE") : "";
       const cT = card ? extractEntryField(card.entry, "TARGET") : "";
-      const inConfig = LC.pressures.indexOf(bP.toLowerCase()) !== -1;
+      const inConfig = LC.pressures.indexOf(bP.toLowerCase()) !== -1 || isRulePressure(bP);
       const match = (cP.toLowerCase() === bP.toLowerCase() && cT.toLowerCase() === bT.toLowerCase());
       out.push("AUDIT " + owners[i] +
         " | bucket(injected): T=" + (bT || "-") + " P=" + (bP || "-") +
@@ -933,16 +1047,27 @@ function LivingCharacters(hook, hookText) {
       "version: " + CFG.VERSION,
       "turn: " + (cg.turn || 0),
       "config protagonist: " + (LC.protagonist || "(none)"),
-      "config cast: " + LC.characters.length + " (roster from " + LC.rosterSource + ") | pressures: " + LC.pressures.length,
+      "config cast: " + LC.characters.length + " total (" + (LC.rosterActorCount || 0) + " roster from " + LC.rosterSource + " + " + (LC.relActorCount || 0) + " relationship-only) | pressures: " + LC.pressures.length,
       "config pacing: LIFE_CARD_INTERVAL " + activityLabel + " / cooldown " + LC.targetCooldown + " cards / cap " + LC.maxActive,
       (LC.legacyActivityUsed
         ? "NOTE: SOCIAL_ACTIVITY is deprecated and was auto-converted to LIFE_CARD_INTERVAL=" + (LC.activityOff ? 0 : LC.activityTurns) + ". Add a LIFE_CARD_INTERVAL line to silence this."
         : "config source: LIFE_CARD_INTERVAL"),
+      "relationshipsCard: " + (LC.relationshipsCardFound ? "FOUND (\"" + CFG.REL_CARD_TITLE + "\")" : "not found -- optional; random targeting in use"),
+      (LC.mainConfigHadRelationships
+        ? "NOTE: a RELATIONSHIPS section in LIVING CHARACTERS CONFIG is now IGNORED -- move it to the \"" + CFG.REL_CARD_TITLE + "\" card."
+        : "relationships source: dedicated card"),
+      "relationships: " + (LC.relationshipCount || 0) + " rules / " + Object.keys(LC.relationships || {}).length + " ruled owners",
+      "cast: " + (LC.rosterActorCount || 0) + " roster + " + (LC.relActorCount || 0) + " relationship-only = " + LC.characters.length + " total (valid targets + scene-detectable)",
+      "eligibleOwners: " + ownerCandidates().length + " (roster NPCs + ruled owners; relationship-only targets are targets-only, never random owners)",
+      "relationshipRules: " + relationshipRuleLines(),
+      "relationshipNotes (parse errors): " + ((LC.relationshipNotes && LC.relationshipNotes.length) ? LC.relationshipNotes.join(" | ") : "(none)"),
       "lastRoll: " + (cg.lastRoll || "n/a"),
       "seedSource: " + (cg.seedSource || "n/a"),
       "seedCandidates: " + ((cg.seedCandidates && cg.seedCandidates.length) ? cg.seedCandidates.join(", ") : "(none)"),
       "selectedSeed: " + (cg.selectedSeed || "(none)"),
       "seedReason: " + (cg.seedReason || "n/a"),
+      "seedSteering: " + (cg.seedTargeting || "n/a") + " | pressureSource: " + (cg.seedPressureSource || "n/a"),
+      "roundRobin: next-phase=" + (cg.seedPhase || "relationship") + " | last=" + (cg.seedRoundRobin || "n/a"),
       "pendingSeed: " + pending,
       "lastSeedAttemptTurn: " + (cg.lastSeedAttemptTurn || 0) + " | totalLifeCards: " + (cg.seedCount || 0),
       "lastThreadReminderTurn: " + (cg.lastThreadReminderTurn || 0),
@@ -970,14 +1095,38 @@ function LivingCharacters(hook, hookText) {
     );
   }
 
-  // Eligible actors = configured cast, minus the protagonist, minus characters
-  // who already hold an active Life thread (one per character), minus characters
-  // still inside their TARGET_COOLDOWN (counted in Life Cards, not turns).
-  function actorPool() {
+  // Names eligible to OWN a Life Card:
+  //   - roster NPCs (the classic random owners), and
+  //   - any name with its OWN relationship rule (a ruled owner; may be the protagonist).
+  // Relationship-only TARGETS are deliberately excluded: being named as someone's target
+  // makes a character a valid target and scene-detectable, but NEVER a random owner. A
+  // target-only name only becomes an owner if it also appears in the roster or gains its
+  // own rule.
+  function ownerCandidates() {
     const p = playerName();
+    const set = {};
+    const roster = LC.rosterCharacters || [];
+    for (let i = 0; i < roster.length; i++) {
+      if (roster[i] && roster[i] !== p) set[roster[i]] = true;
+    }
+    // Ruled owners (the keys of the relationships map). The protagonist is allowed here
+    // ONLY via an explicit rule; random selection still never makes them an owner.
+    const owners = Object.keys(LC.relationships || {});
+    for (let i = 0; i < owners.length; i++) {
+      if (owners[i]) set[owners[i]] = true;
+    }
+    return Object.keys(set);
+  }
+
+  // Eligible actors = ownerCandidates, minus characters who already hold an active Life
+  // thread (one per character -- so a ruled owner with a live card is skipped, and the
+  // engine does NOT compensate by promoting that owner's target to a random owner), minus
+  // characters still inside their TARGET_COOLDOWN (counted in Life Cards, not turns). When
+  // the owner's card archives, they return here and may seed again from their rule targets.
+  function actorPool() {
     const cg = ensureState();
-    return unique(npcRoster()).filter(function(name) {
-      if (!name || name === p) return false;
+    return unique(ownerCandidates()).filter(function(name) {
+      if (!name) return false;
       const b = cg.cards[name];
       if (b && cardHasContent(b) && lifeStatusIsActive(b.status)) return false;
       const lastIdx = cg.actorSeedIndex[name];
@@ -993,6 +1142,184 @@ function LivingCharacters(hook, hookText) {
     });
   }
 
+  // ---- RELATIONSHIPS: directed steering rules (seed-time only) -------------
+  // Optional "Owner > Target [xN] [= pressure, pressure]" lines from the dedicated
+  // LIVING CHARACTERS RELATIONSHIPS card. Rules narrow WHAT seeds (target set and
+  // pressure pool), never WHEN: pacing, cooldowns, slot caps, dormancy, and
+  // existing/pending cards are untouched. An owner with at least one rule ONLY
+  // targets listed characters (fail closed when none is currently legal -- never a
+  // random fallback); owners without rules keep the original random behavior exactly.
+
+  // Parse the RELATIONSHIPS card lines. STRUCTURE is parsed FIRST (">", "=", ",",
+  // trailing " xN") and names are cleaned AFTER -- cleanName strips those symbols,
+  // so it must never see the raw line. Invalid rules are skipped and reported;
+  // for duplicate directed pairs the LAST valid rule wins.
+  //
+  // NAME RESOLUTION is liberal (no roster membership required):
+  //   - "You" / "Protagonist" (and the protagonist's own name) -> PROTAGONIST_NAME.
+  //   - A name matching the roster (case-insensitive) canonicalizes to the roster
+  //     spelling so "jessica" and "Jessica" are the same character.
+  //   - ANY OTHER non-empty name is accepted as a new relationship-only character;
+  //     the caller folds these into the runtime cast, so users never duplicate names.
+  // The protagonist MAY own a rule. Only self-targeting is rejected.
+  function parseRelationshipRules(rawLines, characters, protagonist) {
+    const rules = {};  // owner -> [{ target, pressures: array|null, weight }]
+    const notes = [];
+    let count = 0;
+
+    // Canonical-name resolver. Roster spellings are authoritative; the first spelling
+    // seen wins for any relationship-only name. Returns "" only for empty input or an
+    // unresolvable You/Protagonist (no PROTAGONIST_NAME set).
+    const canon = {};
+    for (let i = 0; i < (characters || []).length; i++) {
+      const c = cleanName(characters[i]);
+      if (c) canon[c.toLowerCase()] = c;
+    }
+    const pName = cleanName(protagonist);
+    const pKey = pName.toLowerCase();
+    function resolve(label) {
+      const c = cleanName(label);
+      if (!c) return "";
+      const low = c.toLowerCase();
+      if (low === "you" || low === "protagonist" || (pKey && low === pKey)) return pName; // "" if no protagonist
+      if (canon[low]) return canon[low];
+      canon[low] = c;
+      return c;
+    }
+
+    // SECTIONING: rules are only read AFTER a "Relationships:" (or "RELATIONSHIPS")
+    // header line. This lets the card carry a title, an "Example:" label, and example
+    // lines ABOVE the header without them ever being parsed as live rules. If no header
+    // line exists, every line is considered (backward compatible with header-less cards).
+    let lines = rawLines || [];
+    for (let h = 0; h < lines.length; h++) {
+      if (/^\s*relationships\s*:?\s*$/i.test(String(lines[h] || ""))) { lines = lines.slice(h + 1); break; }
+    }
+    for (let i = 0; i < lines.length; i++) {
+      const raw = String(lines[i] || "").trim();
+      if (!raw || raw.charAt(0) === "(") continue;
+      const gt = raw.indexOf(">");
+      if (gt === -1) {
+        // A label line ending in ":" or a stray "relationships" header is silent; other
+        // non-rule lines are noted so typos are visible on the debug card.
+        if (!/:$/.test(raw) && !/^relationships$/i.test(raw)) notes.push("ignored (no '>'): " + raw.slice(0, 60));
+        continue;
+      }
+      const ownerRaw = raw.slice(0, gt);
+      let targetRaw = raw.slice(gt + 1);
+      let listRaw = null;
+      const eq = targetRaw.indexOf("=");
+      if (eq !== -1) { listRaw = targetRaw.slice(eq + 1); targetRaw = targetRaw.slice(0, eq); }
+      // Optional trailing weight on the target segment: "Target x3".
+      let weight = 1;
+      const wm = /\sx(\d+)\s*$/i.exec(targetRaw);
+      if (wm) { weight = Math.max(1, toIntOr(wm[1], 1)); targetRaw = targetRaw.slice(0, wm.index); }
+
+      const owner = resolve(ownerRaw);
+      if (!owner) { notes.push("ignored (unresolved owner \"" + (cleanName(ownerRaw) || "?") + "\" -- set PROTAGONIST_NAME to use You/Protagonist)"); continue; }
+      const target = resolve(targetRaw);
+      if (!target) { notes.push("ignored (unresolved target \"" + (cleanName(targetRaw) || "?") + "\" for " + owner + ")"); continue; }
+      if (target === owner) { notes.push("ignored (self-target): " + owner); continue; }
+
+      // Pressure list: cleaned the same way as the global PRESSURES pool
+      // (cleanName + lowercase) so comparisons and audits line up. Pressures NOT
+      // in the global pool are allowed on purpose (pair-specific pressures).
+      let pressures = null;
+      if (listRaw != null) {
+        const parts = String(listRaw).split(",");
+        const list = [];
+        for (let j = 0; j < parts.length; j++) {
+          const pr = cleanName(parts[j]).toLowerCase();
+          if (pr && list.indexOf(pr) === -1) list.push(pr);
+        }
+        if (list.length) pressures = list;
+        else notes.push("empty pressure list (global pool used): " + owner + " > " + target);
+      }
+
+      if (!rules[owner]) rules[owner] = [];
+      let replaced = false;
+      for (let j = 0; j < rules[owner].length; j++) {
+        if (rules[owner][j].target === target) {
+          rules[owner][j] = { target: target, pressures: pressures, weight: weight };
+          notes.push("duplicate pair (last rule used): " + owner + " > " + target);
+          replaced = true;
+          break;
+        }
+      }
+      if (!replaced) {
+        rules[owner].push({ target: target, pressures: pressures, weight: weight });
+        count++;
+      }
+    }
+    while (notes.length > 12) notes.pop();
+    return { rules: rules, notes: notes, count: count };
+  }
+
+  function ownerRules(owner) {
+    const list = (LC.relationships || {})[owner];
+    return (list && list.length) ? list : null;
+  }
+
+  function ruleFor(owner, target) {
+    const list = ownerRules(owner);
+    if (!list) return null;
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].target === target) return list[i];
+    }
+    return null;
+  }
+
+  // True when `owner` may target `target`: unruled owners may target anyone,
+  // ruled owners only characters in their configured set.
+  function canTarget(owner, target) {
+    return !ownerRules(owner) || !!ruleFor(owner, target);
+  }
+
+  // True when `owner` could seed SOME target right now: unruled, or at least one
+  // configured target is currently in their legal target pool.
+  function hasLegalRuleTarget(owner) {
+    const list = ownerRules(owner);
+    if (!list) return true;
+    const pool = targetPool(owner);
+    for (let i = 0; i < list.length; i++) {
+      if (pool.indexOf(list[i].target) !== -1) return true;
+    }
+    return false;
+  }
+
+  // True when a pressure appears in ANY relationship rule's list, so the debug
+  // audit does not flag legitimate pair-specific pressures as stale.
+  function isRulePressure(p) {
+    p = cleanText(p).toLowerCase();
+    if (!p) return false;
+    const owners = Object.keys(LC.relationships || {});
+    for (let i = 0; i < owners.length; i++) {
+      const list = LC.relationships[owners[i]] || [];
+      for (let j = 0; j < list.length; j++) {
+        if (list[j].pressures && list[j].pressures.indexOf(p) !== -1) return true;
+      }
+    }
+    return false;
+  }
+
+  // Compact resolved-rule summary for the debug card, e.g.
+  // "Jessica > [Sam x3 (=jealousy, attraction), Tristan]".
+  function relationshipRuleLines() {
+    const owners = Object.keys(LC.relationships || {});
+    const parts = [];
+    for (let i = 0; i < owners.length; i++) {
+      const list = LC.relationships[owners[i]] || [];
+      const t = [];
+      for (let j = 0; j < list.length; j++) {
+        t.push(list[j].target +
+          (list[j].weight > 1 ? " x" + list[j].weight : "") +
+          (list[j].pressures ? " (=" + list[j].pressures.join(", ") + ")" : ""));
+      }
+      parts.push(owners[i] + " > [" + t.join(", ") + "]");
+    }
+    return parts.length ? parts.join(" ; ") : "(none)";
+  }
+
   // Choose a TARGET for a given (already-selected NPC) owner, applying the
   // PROTAGONIST_INVOLVEMENT bias. This only ever influences who is TARGETED; owner
   // selection (actorPool) and the never-an-owner rule are untouched. With no
@@ -1003,6 +1330,18 @@ function LivingCharacters(hook, hookText) {
     const mode = LC.protagonistInvolvement || "normal";
     const pool = targetPool(actor);
     if (!pool.length) return "";
+    // RELATIONSHIPS steering: a ruled owner's target ALWAYS comes from their rules
+    // (weighted via weightedChoice), overriding PROTAGONIST_INVOLVEMENT for that
+    // owner. If no configured target is currently legal, fail closed with "" --
+    // the caller skips this seed; a ruled owner NEVER falls back to a random target.
+    const rules = ownerRules(actor);
+    if (rules) {
+      const pairs = [];
+      for (let i = 0; i < rules.length; i++) {
+        if (pool.indexOf(rules[i].target) !== -1) pairs.push([rules[i].target, rules[i].weight || 1]);
+      }
+      return pairs.length ? weightedChoice(pairs) : "";
+    }
     const protagInPool = !!p && pool.indexOf(p) !== -1;
 
     if (mode === "off") {
@@ -1041,10 +1380,35 @@ function LivingCharacters(hook, hookText) {
     return [seed.actor, seed.target, seed.category].join("|").toLowerCase();
   }
 
+  // Seed-dedup bookkeeping. Entries are { sig, turn } and EXPIRE after
+  // SEED_DEDUP_TTL_TURNS turns (see the CFG comment for why turn-based).
+  function pruneRecentSeeds(cg) {
+    const keep = [];
+    for (let i = 0; i < cg.recentSeeds.length; i++) {
+      const e = cg.recentSeeds[i];
+      if (e && typeof e.sig === "string" && (cg.turn - (e.turn || 0)) < CFG.SEED_DEDUP_TTL_TURNS) keep.push(e);
+    }
+    cg.recentSeeds = keep;
+  }
+
+  function isRecentSeed(sig) {
+    const cg = ensureState();
+    pruneRecentSeeds(cg);
+    for (let i = 0; i < cg.recentSeeds.length; i++) {
+      if (cg.recentSeeds[i].sig === sig) return true;
+    }
+    return false;
+  }
+
   function rememberSeed(seed) {
     const cg = ensureState();
+    pruneRecentSeeds(cg);
     const sig = seedSignature(seed);
-    if (cg.recentSeeds.indexOf(sig) === -1) cg.recentSeeds.push(sig);
+    let known = false;
+    for (let i = 0; i < cg.recentSeeds.length; i++) {
+      if (cg.recentSeeds[i].sig === sig) { cg.recentSeeds[i].turn = cg.turn; known = true; break; }
+    }
+    if (!known) cg.recentSeeds.push({ sig: sig, turn: cg.turn });
     while (cg.recentSeeds.length > 20) cg.recentSeeds.shift();
     // Count this Life Card and stamp the actor's card index for TARGET_COOLDOWN.
     cg.seedCount = (cg.seedCount || 0) + 1;
@@ -1114,6 +1478,40 @@ function LivingCharacters(hook, hookText) {
     removeStoryCardByKeys(storyCardIdToken(bucket.owner));
   }
 
+  // Select an (owner -> target) pair from a GIVEN owner pool, honoring scene relevance.
+  // PURE: returns { actor, target, seedSource } or null and sets no state. The round-robin
+  // caller runs it once per pool (the preferred type first, then the other as fallback).
+  // This is the same scene/strict/hybrid/off selection the engine has always used, just
+  // parameterized by which owner pool it may draw from.
+  function pickSeedPair(pool, mode, scene, p) {
+    if (!pool || !pool.length) return null;
+    if (mode === "strict" || mode === "hybrid") {
+      const sceneNPCs = unique(npcRoster()).filter(function(n) { return n !== p && scene.indexOf(n) !== -1; });
+      if (sceneNPCs.length) {
+        const anchor = choose(sceneNPCs);                        // the present side
+        // A ruled anchor may only OWN when a configured target is currently legal
+        // (fail closed); owners considered for the target-present branch must be ALLOWED
+        // to target the anchor (unruled, or anchor is in their configured target set).
+        const anchorCanOwn = pool.indexOf(anchor) !== -1 && hasLegalRuleTarget(anchor);
+        const otherOwners = pool.filter(function(n) { return n !== anchor && canTarget(n, anchor); });
+        const anchorAsOwner = anchorCanOwn && (LC.protagonistInvolvement === "always" || otherOwners.length === 0 || Math.random() < 0.5);
+        let actor = null, target = null;
+        if (anchorAsOwner) { actor = anchor; target = chooseTarget(actor); }
+        else if (otherOwners.length) { target = anchor; actor = choose(otherOwners); }
+        else if (anchorCanOwn) { actor = anchor; target = chooseTarget(actor); }
+        if (actor && target) return { actor: actor, target: target, seedSource: "sceneActors" };
+      }
+      if (mode === "strict") return null; // strict: this pool has no scene-eligible pair
+      // hybrid: fall through to off-scene selection from this same pool
+    }
+    const seedable = pool.filter(hasLegalRuleTarget);
+    if (!seedable.length) return null;
+    const actor = choose(seedable);
+    const target = chooseTarget(actor);
+    if (!target) return null;
+    return { actor: actor, target: target, seedSource: "fullRoster" };
+  }
+
   function maybeCreateSeed(text) {
     const cg = ensureState();
     if (!CFG.AUTONOMY_ENABLED || LC.activityOff) { cg.lastRoll = "disabled (Social Activity Off)"; return null; }
@@ -1159,74 +1557,67 @@ function LivingCharacters(hook, hookText) {
     //   NPC -> NPC:          owner OR target in scene
     //   NPC -> Protagonist:  owner must be in scene
     //   Protagonist -> NPC:  N/A (protagonist is never an owner)
-    const mode = LC.sceneRelevanceMode || "strict";
+    const mode = LC.sceneRelevanceMode || "off";
     const scene = cg.sceneActors || [];
     const p = playerName();
-    const fullActors = actorPool();
-    let actor = null, target = null, seedSource = "fullRoster";
-    let sceneNPCs = [];
+    const poolAll = actorPool();
 
-    if (mode === "strict" || mode === "hybrid") {
-      sceneNPCs = unique(npcRoster()).filter(function(n) { return n !== p && scene.indexOf(n) !== -1; });
-      if (sceneNPCs.length) {
-        seedSource = "sceneActors";
-        const anchor = choose(sceneNPCs);                        // the present side
-        const anchorCanOwn = fullActors.indexOf(anchor) !== -1;  // eligible as owner?
-        const otherOwners = fullActors.filter(function(n) { return n !== anchor; });
-        // Vary which side is present: owner-present vs target-present.
-        // For "always", prefer the in-scene NPC as OWNER so chooseTarget can make the
-        // protagonist the TARGET while keeping the card scene-relevant (owner in scene).
-        // If the anchor cannot own, we fall through to the NPC->anchor branch below
-        // (a safe NPC-to-NPC fallback that still respects scene relevance).
-        const anchorAsOwner = anchorCanOwn && (LC.protagonistInvolvement === "always" || otherOwners.length === 0 || Math.random() < 0.5);
-        if (anchorAsOwner) {
-          actor = anchor;
-          target = chooseTarget(actor);
-        } else if (otherOwners.length) {
-          target = anchor;
-          actor = choose(otherOwners);
-        } else if (anchorCanOwn) {
-          actor = anchor;
-          target = chooseTarget(actor);
-        }
-      }
-      if ((!actor || !target) && mode === "strict") {
-        cg.seedSource = "skipped";
-        cg.seedCandidates = sceneNPCs.slice(0, 12);
-        cg.selectedSeed = "(none)";
-        cg.seedReason = "strict: no owner OR target in scene";
-        cg.lastRoll = "attempt: no scene-eligible pair (strict)";
-        return null;
-      }
-      // hybrid with no scene pair falls through to the full roster below.
-    }
+    // ROUND-ROBIN: alternate which owner TYPE is tried first on each generated card.
+    //   relationship phase -> prefer RULED owners (relationship-steered cards); if none
+    //                         can seed, fall back to unruled (random) owners.
+    //   random phase       -> prefer UNRULED owners (random cards); if none can seed,
+    //                         fall back to ruled (relationship) owners.
+    // The phase advances ONLY when a card is actually created (see the success block),
+    // so produced cards alternate relationship/random/relationship/random whenever both
+    // types are available -- each gets a fair turn. With rules on only one side (or none
+    // at all), every attempt simply falls back to the available side, so behavior
+    // degrades cleanly to today's.
+    const phase = (cg.seedPhase === "random") ? "random" : "relationship";
+    const ruledPool = poolAll.filter(function(n) { return !!ownerRules(n); });
+    const randomPool = poolAll.filter(function(n) { return !ownerRules(n); });
+    const firstPool = (phase === "relationship") ? ruledPool : randomPool;
+    const secondPool = (phase === "relationship") ? randomPool : ruledPool;
 
-    if (!actor) {
-      if (!fullActors.length) {
-        cg.seedSource = seedSource; cg.seedCandidates = fullActors.slice(0, 12);
-        cg.selectedSeed = "(none)"; cg.seedReason = "no eligible owners";
-        cg.lastRoll = "attempt: no eligible actors";
-        return null;
-      }
-      actor = choose(fullActors);
-      target = chooseTarget(actor);
-    }
-    if (!target) {
-      cg.seedSource = seedSource;
-      cg.lastRoll = "attempt: no targets for " + actor;
-      cg.selectedSeed = "(none)"; cg.seedReason = "no targets for " + actor;
+    let pick = pickSeedPair(firstPool, mode, scene, p);
+    let fellBack = false;
+    if (!pick) { pick = pickSeedPair(secondPool, mode, scene, p); fellBack = !!pick; }
+
+    if (!pick) {
+      cg.seedSource = "skipped";
+      cg.seedCandidates = poolAll.slice(0, 12);
+      cg.selectedSeed = "(none)";
+      cg.seedRoundRobin = "phase=" + phase + " -> no pair from either pool";
+      cg.seedReason = poolAll.length
+        ? (mode === "strict"
+            ? "strict: no scene-eligible pair from either round-robin pool (phase " + phase + ")"
+            : "no eligible owner/target pair, both round-robin pools (phase " + phase + ")")
+        : "no eligible owners";
+      cg.lastRoll = "attempt: no eligible pair (phase " + phase + ")";
       return null;
     }
 
+    const actor = pick.actor, target = pick.target, seedSource = pick.seedSource;
+
     cg.seedSource = seedSource;
-    cg.seedCandidates = (seedSource === "sceneActors" ? sceneNPCs : fullActors).slice(0, 12);
+    cg.seedCandidates = poolAll.slice(0, 12);
     cg.selectedSeed = actor + " -> " + target;
+    cg.seedRoundRobin = "phase=" + phase +
+      (fellBack ? " -> fell back to " + (phase === "relationship" ? "random" : "relationship") : " (preferred)");
     const ownerIn = actor !== p && scene.indexOf(actor) !== -1;
     const tgtIn = target !== p && scene.indexOf(target) !== -1;
     cg.seedReason = (seedSource === "sceneActors")
       ? (ownerIn && tgtIn ? "owner & target in scene" : ownerIn ? "owner in scene" : "target in scene")
       : "off-scene seed allowed (mode=" + mode + ")";
-    const pressure = choose(LC.pressures) || "tension";
+    // Pressure resolution: exact Owner > Target rule list, else the global pool.
+    const rule = ruleFor(actor, target);
+    const rulePressures = (rule && rule.pressures && rule.pressures.length) ? rule.pressures : null;
+    const pressure = choose(rulePressures || LC.pressures) || "tension";
+    cg.seedTargeting = ownerRules(actor) ? "rule" : "random";
+    cg.seedPressureSource = rulePressures ? "rule" : "global";
+    cg.seedRule = rule
+      ? "rule: " + actor + " > " + target + " | pressures: " + (rulePressures ? rulePressures.join(", ") : "global pool")
+      : "";
+    if (cg.seedRule) cg.seedReason += " | " + cg.seedRule;
     const intensity = weightedChoice([["small", 65], ["medium", 28], ["major", 7]]);
 
     let seed = {
@@ -1241,9 +1632,12 @@ function LivingCharacters(hook, hookText) {
       reason: cardReason(actor, target, pressure)
     };
 
-    if (cg.recentSeeds.indexOf(seedSignature(seed)) !== -1) { cg.lastRoll = "attempt: duplicate, skipped"; return null; }
+    if (isRecentSeed(seedSignature(seed))) { cg.lastRoll = "attempt: duplicate, skipped (signature expires after " + CFG.SEED_DEDUP_TTL_TURNS + " turns)"; return null; }
     cg.pendingSeed = seed;
     cg.lastSeedAttemptTurn = cg.turn; // start the next interval only on SUCCESS
+    // Advance the round-robin phase ONLY here, on a real card creation (not on skips or
+    // dedup blocks), so the preference alternates once per produced card.
+    cg.seedPhase = (phase === "relationship") ? "random" : "relationship";
     cg.lastRoll = "LIFE CARD " + actor + " -> " + target + " [" + pressure + "/" + intensity + "]";
     rememberSeed(seed);
     bootstrapSeedCard(seed);
@@ -1297,7 +1691,7 @@ function LivingCharacters(hook, hookText) {
   function buildActiveThreadsBlock() {
     const cg = ensureState();
     const scene = cg.sceneActors || [];
-    const mode = LC.sceneRelevanceMode || "strict";
+    const mode = LC.sceneRelevanceMode || "off";
     const owners = Object.keys(cg.cards || {});
 
     const active = [];
@@ -2179,6 +2573,7 @@ function LivingCharacters(hook, hookText) {
   let LC = {
     protagonist: "",
     characters: [],
+    rosterCharacters: [],
     rosterSource: "none",
     pressures: CFG.DEFAULT_PRESSURES.slice(),
     activityOff: false,
@@ -2191,6 +2586,13 @@ function LivingCharacters(hook, hookText) {
     forceActiveCardTrigger: CFG.FORCE_ACTIVE_CARD_TRIGGER,
     protagonistAlwaysPresent: CFG.PROTAGONIST_ALWAYS_PRESENT,
     protagonistInvolvement: CFG.PROTAGONIST_INVOLVEMENT,
+    relationships: {},
+    relationshipNotes: [],
+    relationshipCount: 0,
+    relationshipsCardFound: false,
+    mainConfigHadRelationships: false,
+    rosterActorCount: 0,
+    relActorCount: 0,
     checkpointEvery: CFG.CHECKPOINT_EVERY,
     threadReminderEvery: CFG.THREAD_REMINDER_EVERY
   };
