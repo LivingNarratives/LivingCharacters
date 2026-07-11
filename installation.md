@@ -173,13 +173,30 @@ Add relationship rules beneath the `Relationships:` heading:
 
 ```
 Relationships:
-Jessica>Sam=jealousy,attraction
-Jessica > Sam = jealousy,attraction
+Luke>Larry
+Luke > Larry
+
+Luke>Larry=
+Luke > Larry =
+
+Luke>Larry=fight
+Luke > Larry = fight
+
+Luke>Larry=fight,yell,argue
+Luke > Larry = fight,yell,argue
 ```
 
-If you do not include a pressure list, Living Characters uses the global pressure pool from **LIVING CHARACTERS CONFIG**.
+Spaces around `>` and `=` are optional.
 
-The example section above `Relationships:` is documentation only.
+If you do not include a pressure list, or if `=` is left empty, Living Characters uses the global pressure pool from **LIVING CHARACTERS CONFIG**.
+
+For multiple pressures, separate them with commas and no spaces:
+
+```
+fight,yell,argue
+```
+
+Relationship rules are only read beneath `Relationships:`. Anything above that heading is documentation/examples and is ignored.
 
 Living Characters alternates between relationship owner selection and random owner selection. If one pool has no eligible owners, it automatically falls back to the other.
 

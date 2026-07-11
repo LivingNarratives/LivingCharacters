@@ -3,12 +3,13 @@
 ## 2.60 - Relationships and Scheduling Update
 
 - Added per-character relationship targeting with the new **LIVING CHARACTERS RELATIONSHIPS** Story Card.
-- Added flexible relationship syntax such as `Jessica>Sam=jealousy,attraction` and `Jessica > Sam = jealousy,attraction`.
+- Added flexible relationship syntax such as `Luke>Larry`, `Luke > Larry`, `Luke>Larry=`, `Luke > Larry =`, `Luke>Larry=fight`, `Luke > Larry = fight`, `Luke>Larry=fight,yell,argue`, and `Luke > Larry = fight,yell,argue`.
+- Added optional spacing around `>` and `=`.
+- Empty or omitted pressure lists automatically use the global default pressure list.
 - Relationship rules are entered beneath the `Relationships:` heading. Example text above that heading is documentation only.
-- Relationship rules without a pressure list use the global pressure pool.
 - Added round robin owner scheduling that alternates between relationship owner selection and random owner selection.
 - Added automatic fallback between relationship and random owner pools when one pool has no eligible owners.
-- Updated Scene Relevance documentation. `off` is now the recommended setting for most adventures.
+- Scene Relevance now defaults to `off`.
 - Updated setup and configuration docs for the current Life Cards, Relationships, and Thought Cards cards.
 
 ## 2.59 - Thought Cards Quality and Trigger Update

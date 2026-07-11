@@ -185,15 +185,10 @@ Controls whether Life Cards must involve characters currently in the scene.
 
 Characters may generate Life Cards regardless of scene participation. This provides the most natural autonomous behavior and is the recommended setting for most adventures.
 
-### Hybrid
-`SCENE_RELEVANCE_MODE: hybrid`
-
-Prefers characters in the current scene while allowing fallback behavior.
-
 ### Strict
 `SCENE_RELEVANCE_MODE: strict`
 
-Restricts Life Cards to scene participants only. This is intended for creators who specifically want scene-local interactions.
+Restricts Life Cards to characters participating in the current scene. This is recommended only for creators who specifically want scene-local interactions.
 
 The older `SCENE_RELEVANCE` name is still accepted, but new examples use `SCENE_RELEVANCE_MODE`.
 
@@ -211,22 +206,56 @@ Relationship rules go beneath the `Relationships:` heading:
 
 ```
 Relationships:
-Jessica>Sam=jealousy,attraction
-Jessica > Sam = jealousy,attraction
+Luke>Larry
+Luke > Larry
+
+Luke>Larry=
+Luke > Larry =
+
+Luke>Larry=fight
+Luke > Larry = fight
+
+Luke>Larry=fight,yell,argue
+Luke > Larry = fight,yell,argue
 ```
 
-Both compact and spaced syntax are supported.
+Spaces around `>` and `=` are optional.
 
-If you leave the pressure list out, Living Characters uses the global pressure pool from **LIVING CHARACTERS CONFIG**:
+These are equivalent:
 
 ```
-Relationships:
-Jessica > Sam
+Luke>Larry=fight
+Luke > Larry = fight
 ```
 
-The example section above the `Relationships:` heading is documentation only. Only lines beneath the `Relationships:` heading are treated as active relationship rules.
+If no pressure list is supplied, or `=` is left empty, Living Characters automatically uses the global default pressure list.
 
-Older relationship cards without a `Relationships:` heading remain backward compatible.
+These all use the global default pressure list:
+
+```
+Luke>Larry
+Luke>Larry=
+Luke > Larry
+Luke > Larry =
+```
+
+Multiple pressures are separated with commas.
+
+Correct:
+
+```
+fight,yell,argue
+```
+
+Incorrect:
+
+```
+fight, yell, argue
+```
+
+Do not put spaces after commas in pressure lists.
+
+Relationship rules are only read beneath the `Relationships:` heading. Anything above the heading is treated as documentation/examples and is ignored.
 
 Unknown character names are handled safely. Relationship-only names can be used without duplicating them in the main roster.
 
