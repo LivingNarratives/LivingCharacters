@@ -31,7 +31,7 @@ Living Characters adds two lightweight systems to AI Dungeon:
 
 Life Cards create autonomous social threads between characters so your story world stops revolving only around the protagonist.
 
-Life Cards can run from the general cast or from optional relationship rules in the **LIVING CHARACTERS RELATIONSHIPS** card. Rules use simple syntax like `Luke>Larry=fight,yell,argue`, and Living Characters alternates between relationship owner selection and random owner selection with fallback when one pool has no eligible owners.
+Life Cards can run from the general cast or from optional relationship targeting in the **LIVING CHARACTERS RELATIONSHIPS** card. Rules use simple syntax like `Luke>Larry=fight,yell,argue`, spaces around `>` and `=` are optional, and omitted or empty pressure lists use the global default pressure list. Living Characters alternates between relationship owner selection and random owner selection with fallback when one pool has no eligible owners.
 
 | Without Living Characters       | With Life Cards                             |
 | ------------------------------- | ------------------------------------------- |

@@ -2,7 +2,7 @@
 
 ## 2.60 - Relationships and Scheduling Update
 
-- Added per-character relationship targeting with the new **LIVING CHARACTERS RELATIONSHIPS** Story Card.
+- Added relationship targeting with the new **LIVING CHARACTERS RELATIONSHIPS** Story Card.
 - Added flexible relationship syntax such as `Luke>Larry`, `Luke > Larry`, `Luke>Larry=`, `Luke > Larry =`, `Luke>Larry=fight`, `Luke > Larry = fight`, `Luke>Larry=fight,yell,argue`, and `Luke > Larry = fight,yell,argue`.
 - Added optional spacing around `>` and `=`.
 - Empty or omitted pressure lists automatically use the global default pressure list.

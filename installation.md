@@ -108,7 +108,7 @@ This card controls important settings like:
 - Target cooldown
 - Maximum active Life Cards
 - Scene relevance
-- Optional relationship targeting
+- Relationship targeting
 
 ---
 
@@ -163,9 +163,9 @@ Winter
 
 ---
 
-## Optional: Configure Relationships
+## Optional: Configure Relationship Targeting
 
-Relationships use a separate Story Card named exactly:
+Relationship targeting uses a separate Story Card named exactly:
 
 **LIVING CHARACTERS RELATIONSHIPS**
 
@@ -188,7 +188,7 @@ Luke > Larry = fight,yell,argue
 
 Spaces around `>` and `=` are optional.
 
-If you do not include a pressure list, or if `=` is left empty, Living Characters uses the global pressure pool from **LIVING CHARACTERS CONFIG**.
+If you do not include a pressure list, or if `=` is left empty, Living Characters uses the global default pressure list from **LIVING CHARACTERS CONFIG**.
 
 For multiple pressures, separate them with commas and no spaces:
 

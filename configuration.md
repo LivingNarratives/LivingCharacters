@@ -3,10 +3,10 @@
 Living Characters uses **three separate Story Cards**:
 
 - **LIVING CHARACTERS CONFIG** = Life Cards
-- **LIVING CHARACTERS RELATIONSHIPS** = optional relationship targeting for Life Cards
+- **LIVING CHARACTERS RELATIONSHIPS** = relationship targeting for Life Cards
 - **THOUGHT CARDS CONFIG** = Thought Cards
 
-Keep these settings separate. Do not put Relationship or Thought Card settings inside **LIVING CHARACTERS CONFIG**.
+Keep these settings separate. Do not put relationship targeting or Thought Card settings inside **LIVING CHARACTERS CONFIG**.
 
 ---
 
