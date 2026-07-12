@@ -95,13 +95,13 @@ modifier(text);
 
 ---
 
-## Step 8: Create the Configuration Story Card
+## Step 8: Open the Configuration Story Card
 
-Create a new Story Card with the exact name:
+After the script runs, Living Characters automatically creates a Story Card with the exact name:
 
 **LIVING CHARACTERS CONFIG**
 
-This card controls important settings like:
+Open that existing card to edit important settings like:
 - Character roster
 - Pressures
 - Life Card interval
@@ -114,7 +114,7 @@ This card controls important settings like:
 
 ## Step 9: Configure Your Settings
 
-Add your Life Card roster and settings to **LIVING CHARACTERS CONFIG**.
+Edit your Life Card roster and settings in the automatically created **LIVING CHARACTERS CONFIG** card.
 
 **Example:**
 ```

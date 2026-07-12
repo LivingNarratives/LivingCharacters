@@ -14,11 +14,11 @@ Keep these settings separate. Do not put relationship targeting or Thought Card 
 
 This card controls **Life Cards only**.
 
-Create a Story Card named exactly:
+Living Characters automatically creates a Story Card named exactly:
 
 **LIVING CHARACTERS CONFIG**
 
-This card controls:
+Open that existing card to edit:
 
 - `PROTAGONIST_NAME`
 - `PROTAGONIST_INVOLVEMENT`
