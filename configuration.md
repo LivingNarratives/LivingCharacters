@@ -331,7 +331,11 @@ Thought Cards use an internal storage safety buffer:
 
 The 💭 marker means "most recently updated." Living Characters scans Thought Cards and clears existing 💭 markers before marking the newest updated card. Only one Thought Card should display 💭 at a time.
 
-Thought Cards now use stricter capture instructions and character labels so thoughts are filed to the correct character's card more reliably. This helps prevent rare cases where a thought could attach to the wrong person.
+Updated Thought Story Cards are deleted and recreated when saved. This keeps the most recently updated Thought Card near the top of AI Dungeon's Story Card list instead of drifting lower over time. No user configuration is required.
+
+Thought Cards validate attribution against the intended character before saving. This prevents rare cases where a generated Thought could be assigned to the wrong character if the model returns an incorrect label.
+
+Thoughts introduce characters by first name and then transition naturally to pronouns where appropriate. This keeps internal monologue clear without repeatedly using the character's name.
 
 The latest Thought Card update also reduces repeated thoughts, especially on Gemma, and fixes Hearthfire cases where Thought Card content could bleed into the AI narrator's generated response. The script now strongly favors explicit character names over pronouns such as "he" or "she" when deciding where to file a thought.
 

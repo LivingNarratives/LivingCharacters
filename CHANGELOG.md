@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.61 - Thought Cards Refresh and Attribution Update
+
+- Thought Story Cards are now deleted and recreated when updated so the latest updated Thought Card returns to the top of AI Dungeon's Story Card list.
+- Improved Thought attribution validation so generated Thoughts are saved to the intended character instead of a wrong character label in rare cases.
+- Improved Thought writing flow so Thoughts introduce the character by first name and then transition naturally to pronouns where appropriate.
+- No user configuration is required for these Thought Card improvements.
+
 ## 2.60 - Relationships and Scheduling Update
 
 - Added relationship targeting with the new **LIVING CHARACTERS RELATIONSHIPS** Story Card.

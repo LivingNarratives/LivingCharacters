@@ -48,7 +48,7 @@ function LivingCharacters(hook, hookText) {
   "use strict";
 
   const CFG = {
-    VERSION: "2.57-relationships-section-2026-07-11",
+    VERSION: "2.59c-thought-name-then-natural-flow-2026-07-13",
 
     // All cast / protagonist / pressures / pacing come from the editable config
     // Story Card below. No scenario-specific names live in engine logic.
@@ -2251,6 +2251,15 @@ function LivingCharacters(hook, hookText) {
     const entry = entryFit.kept.length ? renderThoughtLines(entryFit.kept) : "(no thoughts yet)";
     const notes = notesFit.kept.length ? renderThoughtLines(notesFit.kept) : "";
 
+    // On a NEW thought (marked), DELETE the existing card first so the create below makes
+    // a BRAND-NEW card. AID's card menu is sorted by card CREATION order (newest first)
+    // and ignores array position, so recreating is the only thing that actually lifts a
+    // freshly-updated card to the top -- it becomes "newest" like a first-time thinker's
+    // card. All thought text lives in state (ts.byChar), so the deleted card is fully
+    // rebuilt from entry/notes below and nothing is lost. On non-marked syncs (e.g. the
+    // 💭 marker expiring) we patch in place, so the card keeps its position.
+    if (marked) removeStoryCardByKeys(thoughtCardToken(name));
+
     createOrPatchStoryCard(
       thoughtCardTitle(name, !!marked), // "Name - Thoughts" (+ 💭 while recently updated)
       CFG.THOUGHT_CARD_TYPE,
@@ -2349,6 +2358,7 @@ function LivingCharacters(hook, hookText) {
     }
   }
 
+
   // Candidate thought-characters for THIS turn, per THOUGHT_SCENE_MODE.
   // Thought Cards are journals of what characters are thinking in/around the CURRENT
   // story moment, so by default only scene-relevant characters are eligible. There is
@@ -2397,6 +2407,7 @@ function LivingCharacters(hook, hookText) {
   function buildThoughtAsk(contextText) {
     const ts = ensureThoughtState();
     ts.pendingChar = "";
+    ts.candidates = []; // scene-relevant thinkers this turn (used by capture to reject mislabels)
     const TC = buildThoughtConfig();
     if (!TC.enabled || !TC.characters.length) return "";
     const turn = (ensureState().turn) || 0;
@@ -2406,19 +2417,21 @@ function LivingCharacters(hook, hookText) {
     if (!cands.length) return "";                                    // nobody relevant -> no thought
     const name = choose(cands);
     ts.pendingChar = name;
+    ts.candidates = cands.slice(); // remember who was scene-relevant, for capture attribution
     ts.lastThoughtTurn = turn;
     // Names of the OTHER people currently in the scene (reuses the scene actors computed this
     // turn). Feeding the model the actual names is what makes it write "Jessica" instead of
     // "she" -- it can only use a name it is reminded of.
     const present = (ensureState().sceneActors || []).filter(function (n) { return n && n !== name; });
     const nameHint = present.length
-      ? " People in the scene you must name (never a pronoun): " + present.join(", ") + "."
+      ? " Others present (name on first mention): " + present.join(", ") + "."
       : "";
-    // ONE leading first-person parenthetical, name-LABELED so the thinker is unambiguous, with
-    // a HARD naming rule so other characters are referred to by name, not pronouns.
+    // ONE leading first-person parenthetical, name-LABELED so the thinker is unambiguous.
+    // Naming rule: each other character is NAMED on first mention, then referred to with a
+    // pronoun -- keeps who's-who clear without the clunky repeated-name reading.
     return "\n\n<LC_PRIVATE>\n" +
       "Begin your reply with ONE short parenthetical: " + name + "'s own private thought right now, in first person (I / me / my), ONE sentence, LABELED with their name. " +
-      "HARD RULE: refer to every other person in the thought by their actual NAME -- do NOT use he, she, they, him, her, them, his, hers, or 'that man/woman/girl/guy' for another character. If you would write 'she', write the character's name instead." + nameHint + " " +
+      "Every other character must be named (first name) once before any pronoun or nickname; after that use normal flow of wording with pronouns." + nameHint + " " +
       "Make it a specific reaction to this exact moment, not a generic or repeated line. Then continue the story normally. The parenthetical is hidden from the player automatically. Format: (" + name + ": I ...)\n" +
       "</LC_PRIVATE>";
   }
@@ -2467,31 +2480,52 @@ function LivingCharacters(hook, hookText) {
     const ts = ensureThoughtState();
     const TC = buildThoughtConfig();
     let text = String(original || "");
+    const asked = ts.pendingChar;                                    // who we asked (scene-relevant), or ""
+    const allowed = Array.isArray(ts.candidates) ? ts.candidates : []; // scene-relevant thinkers this turn
 
-    // 1) PRIMARY: first name-labeled parenthetical whose label is a known Thought character.
+    // A resolved label is TRUSTED only if it is who we asked OR another scene-relevant
+    // candidate this turn. When two characters are near-identical (e.g. two attorneys),
+    // the model often swaps the name in the parenthetical; an off-scene / not-asked label
+    // is treated as a MISLABEL and its thought is filed under the character we ACTUALLY
+    // asked -- never redirected to a character who was not in the scene.
+    const isTrusted = function (who) {
+      if (!who) return false;
+      if (asked && who === asked) return true;
+      return allowed.indexOf(who) !== -1;
+    };
+
+    // 1) PRIMARY: scan labeled parentheticals. Prefer one labeled with a TRUSTED character;
+    //    otherwise keep the first resolvable one as the thought body to re-attribute.
     const labeled = /\(\s*([A-Za-z][\w '\-]{0,30})\s*:\s*([^)]*)\)/g;
-    let mm, chosen = null;
+    let mm, firstResolvable = null, trustedHit = null;
     while ((mm = labeled.exec(text)) !== null) {
       const who = resolveThoughtCharacter(mm[1], TC);
-      if (who) { chosen = { whole: mm[0], who: who, body: mm[2], index: mm.index }; break; }
+      if (!who) continue;
+      const rec = { whole: mm[0], who: who, body: mm[2], index: mm.index };
+      if (!firstResolvable) firstResolvable = rec;
+      if (isTrusted(who)) { trustedHit = rec; break; }
     }
+    const chosen = trustedHit || firstResolvable;
     if (chosen) {
+      // Trusted label -> file under it. Untrusted label (mislabel) -> file under the asked
+      // character; only when nothing was asked do we fall back to the label as best-effort.
+      const target = trustedHit ? trustedHit.who : (asked || chosen.who);
       const body = cleanText(chosen.body);
-      if (body) appendThought(chosen.who, body, TC);          // dedup happens inside appendThought
+      if (body) appendThought(target, body, TC);              // dedup happens inside appendThought
       text = text.slice(0, chosen.index) + text.slice(chosen.index + chosen.whole.length);
       text = stripLabeledThoughts(text, TC);                  // remove any extra labeled thoughts
       return tidyThoughtSeam(text);
     }
 
     // 2) FALLBACK: only when a thought was asked this turn, an unlabeled LEADING parenthetical.
-    if (ts.pendingChar) {
+    if (asked) {
       const m = /^\s*\(([^)]*)\)/.exec(text);
       if (m) {
         let inner = cleanText(m[1]);
         const lbl = /^([A-Za-z][\w '\-]{0,30}):\s*/.exec(inner);
         if (lbl) inner = inner.slice(lbl[0].length).trim();   // drop a stray label if present
         if (inner) {
-          appendThought(ts.pendingChar, inner, TC);
+          appendThought(asked, inner, TC);
           const rest = text.slice(m[0].length);
           return (rest && !/^\s/.test(rest)) ? " " + rest : rest;
         }
