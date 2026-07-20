@@ -48,7 +48,7 @@ function LivingCharacters(hook, hookText) {
   "use strict";
 
   const CFG = {
-    VERSION: "2.59c-thought-name-then-natural-flow-2026-07-13",
+    VERSION: "2.63-thought-order-option-2026-07-13",
 
     // All cast / protagonist / pressures / pacing come from the editable config
     // Story Card below. No scenario-specific names live in engine logic.
@@ -185,6 +185,11 @@ function LivingCharacters(hook, hookText) {
     // Default is "scene": a character only gets a thought when they are actually in the
     // current scene. No silent fallback to the roster (that is the opt-in "roster" mode).
     THOUGHT_SCENE_MODE_DEFAULT: "scene", // scene | recent | roster
+    // Display order of the numbered thoughts on a character's card. DISPLAY ONLY --
+    // storage stays oldest->newest so the overflow/trim logic is unaffected.
+    //   ascending  -> 1, 2, 3, 4  (oldest first; the original behavior)
+    //   descending -> 4, 3, 2, 1  (newest first)
+    THOUGHT_ORDER_DEFAULT: "ascending", // ascending | descending
     THOUGHT_SCENE_TIGHT_CHARS: 700,     // "scene" mode: how many trailing chars count as the CURRENT scene
 
     // Fallback pressures, used ONLY if the config card lists none. Generic and
@@ -211,6 +216,27 @@ function LivingCharacters(hook, hookText) {
     // seed, and a blocked seed never advances the seed count -- count-based aging
     // would deadlock. Turns always advance.
     SEED_DEDUP_TTL_TURNS: 30,
+
+    // ---- World Event cards -------------------------------------------------
+    // A world event is a Life Card whose owner is the WORLD, not a person. It rides the
+    // SAME machinery as any other card -- slot cap, pacing, seeding, injection block,
+    // round-robin -- so it is not a second system. It is excluded from every CHARACTER
+    // path via kind === "event" (never an actor, never a target, never "in scene"), and
+    // because it takes a normal card slot, MAX_ACTIVE_CARDS alone decides whether it can
+    // coexist with a character card (set 1 to make the event the only card in play).
+    // The bucket key contains ":" -- cleanName can never produce that, so it can never
+    // collide with a real character's bucket, and the narrator can never address it.
+    EVENT_BUCKET_KEY: "event:world",
+    EVENT_OWNER_LABEL: "The World",
+    EVENT_CARD_TITLE: "Event - World",
+    EVENT_CARD_TYPE: "Event",
+    // Round-robin cycle:
+    //   relationship -> event -> random -> relationship -> random -> repeat
+    // Events take 1 seat in 5; relationship and random take 2 each. Re-tune the cadence
+    // anytime by editing this array. A seat that cannot produce is SKIPPED by the fallback
+    // loop in maybeCreateSeed, so an empty WORLD_EVENTS list simply degrades to the
+    // relationship/random seats and nothing stalls.
+    SEED_CYCLE: ["relationship", "event", "random", "relationship", "random"],
 
     STATUS_VALUES: ["active", "simmering", "surfaced", "dormant", "resolved"]
   };
@@ -257,6 +283,14 @@ function LivingCharacters(hook, hookText) {
       "gossip",
       "misunderstanding",
       "",
+      "WORLD_EVENTS:",
+      "( Optional. One event per line -- type your own. )",
+      "( The narrator decides which characters get pulled in. )",
+      "( An event takes a card slot like any other Life Card. )",
+      "( Leave empty for no events. )",
+      "( A gun duel erupts in the street )",
+      "( A brawl breaks out in the saloon )",
+      "",
       "LIFE_CARD_INTERVAL:",
       "15",
       "",
@@ -293,9 +327,10 @@ function LivingCharacters(hook, hookText) {
     const head = line.slice(0, colon).trim().toLowerCase().replace(/\s+/g, "_");
     const labels = [
       "protagonist_name", "protagonist_involvement", "characters", "pressures",
+      "world_events",
       "life_card_interval", "social_activity", "target_cooldown", "max_active_cards",
       "scene_relevance_mode", "scene_relevance", "trigger_on_target",
-      "force_active_card_trigger", "protagonist_always_present"
+      "force_active_card_trigger", "protagonist_always_present", "world_events"
     ];
     return labels.indexOf(head) !== -1;
   }
@@ -361,7 +396,7 @@ function LivingCharacters(hook, hookText) {
   }
 
   function parseConfigText(text, keysOverride) {
-    const KEYS = keysOverride || ["protagonist_name", "characters", "pressures", "life_card_interval", "social_activity", "target_cooldown", "max_active_cards", "scene_relevance_mode", "scene_relevance", "trigger_on_target", "force_active_card_trigger", "protagonist_always_present", "protagonist_involvement"];
+    const KEYS = keysOverride || ["protagonist_name", "characters", "pressures", "life_card_interval", "social_activity", "target_cooldown", "max_active_cards", "scene_relevance_mode", "scene_relevance", "trigger_on_target", "force_active_card_trigger", "protagonist_always_present", "protagonist_involvement", "world_events"];
     const lines = String(text || "").replace(/\r/g, "").split("\n");
     const sections = {};
     let current = "";
@@ -403,6 +438,21 @@ function LivingCharacters(hook, hookText) {
     return out;
   }
 
+  // Like configList, but PRESERVES the raw line text. configList runs cleanName, which
+  // strips punctuation and truncates at 50 chars -- right for names, wrong for an event
+  // sentence like "A gun duel erupts in the street."
+  function configTextList(sections, key) {
+    const arr = sections[key] || [];
+    const out = [];
+    for (let i = 0; i < arr.length; i++) {
+      const line = String(arr[i] || "").trim();
+      if (!line || line.charAt(0) === "(" || isConfigSectionLabel(line)) continue;
+      const v = cleanText(line);
+      if (v && out.indexOf(v) === -1) out.push(v);
+    }
+    return out;
+  }
+
   function toIntOr(value, dflt) {
     const n = parseInt(String(value).replace(/[^0-9-]/g, ""), 10);
     return isNaN(n) ? dflt : n;
@@ -438,6 +488,11 @@ function LivingCharacters(hook, hookText) {
 
     let pressures = configList(sections, "pressures").map(function(p) { return p.toLowerCase(); });
     if (!pressures.length) pressures = CFG.DEFAULT_PRESSURES.slice();
+
+    // WORLD_EVENTS: optional authored list, one event per line. Raw text is preserved.
+    // Empty (the default) -> the "event" seat in the round-robin falls through to the
+    // character pools, so an existing story behaves exactly as before.
+    const worldEvents = configTextList(sections, "world_events");
 
     // LIFE_CARD_INTERVAL -> turns between Life Card attempts. 0 disables generation.
     // SOCIAL_ACTIVITY is deprecated; if an old card has it but no LIFE_CARD_INTERVAL,
@@ -539,6 +594,7 @@ function LivingCharacters(hook, hookText) {
       rosterCharacters: rosterCharacters,
       rosterSource: rosterSource,
       pressures: pressures,
+      worldEvents: worldEvents,
       activityOff: activityOff,
       activityTurns: activityTurns,
       legacyActivityUsed: legacyActivityUsed,
@@ -588,7 +644,10 @@ function LivingCharacters(hook, hookText) {
     if (typeof cg.seedCount !== "number") cg.seedCount = 0;
     // Round-robin phase: which owner type is TRIED first next seed. Default to
     // "relationship" so the very first generated card prefers a relationship rule.
-    if (cg.seedPhase !== "relationship" && cg.seedPhase !== "random") cg.seedPhase = "relationship";
+    if (cg.seedPhase !== "relationship" && cg.seedPhase !== "random" && cg.seedPhase !== "event") cg.seedPhase = "relationship";
+    // Round-robin CYCLE index into CFG.SEED_CYCLE. Migrated from the legacy 2-way
+    // seedPhase toggle so existing saves keep their place in the rotation.
+    if (typeof cg.seedCycleIndex !== "number") cg.seedCycleIndex = (cg.seedPhase === "random") ? 1 : 0;
     if (!Array.isArray(cg.recentSeeds)) cg.recentSeeds = [];
     // Migrate legacy recentSeeds entries (plain signature strings, never-expiring)
     // to { sig, turn } stamped with the current turn so they age out normally.
@@ -968,6 +1027,8 @@ function LivingCharacters(hook, hookText) {
       // Only live threads sync. Dormant/resolved buckets are archived in state
       // (HISTORY preserved) and must NOT be recreated as Story Cards.
       if (!cardHasContent(bucket) || !lifeStatusIsActive(bucket.status)) continue;
+      // World events render as an event, not as an owner/target pressure card.
+      if (isEventBucket(bucket)) { syncWorldEventCard(bucket); continue; }
       const entry = renderCardEntry(bucket);
       if (!entry) continue;
       createOrPatchStoryCard(
@@ -1007,6 +1068,7 @@ function LivingCharacters(hook, hookText) {
     for (let i = 0; i < owners.length; i++) {
       const b = cg.cards[owners[i]];
       if (!cardHasContent(b) || !lifeStatusIsActive(b.status)) continue;
+      if (isEventBucket(b)) continue; // world events have no owner/target/pressure to audit
       const bP = cleanText(b.pressure), bT = cleanText(b.target);
       const card = findStoryCardByKeys(storyCardIdToken(owners[i]));
       const cP = card ? extractEntryField(card.entry, "PRESSURE") : "";
@@ -1080,6 +1142,14 @@ function LivingCharacters(hook, hookText) {
       "candidateCards: " + ((cg.lastCandidateTrace && cg.lastCandidateTrace.length) ? cg.lastCandidateTrace.join(" | ") : "(none)"),
       "selectedCards / injectedCards: " + ((cg.lastSelectedTrace && cg.lastSelectedTrace.length) ? cg.lastSelectedTrace.join(" | ") : "(none)"),
       "freshThreads (marked URGENT): " + ((cg.lastFreshThreads && cg.lastFreshThreads.length) ? cg.lastFreshThreads.join(", ") : "(none)"),
+      "worldEvents configured: " + (LC.worldEvents ? LC.worldEvents.length : 0) +
+        " | live: " + (function () {
+          const b = ensureState().cards[CFG.EVENT_BUCKET_KEY];
+          return (b && cardHasContent(b) && lifeStatusIsActive(b.status))
+            ? ("\"" + cleanText(b.worldEvent) + "\" (since turn " + (b.createdTurn || 0) + ", normal life-card lifespan)")
+            : "(none)";
+        })(),
+      "seedCycle: [" + CFG.SEED_CYCLE.join(", ") + "] | next=" + CFG.SEED_CYCLE[((cg.seedCycleIndex || 0) % CFG.SEED_CYCLE.length)],
       cardAuditLines(),
       "archivedLifeCards (dormant/resolved): " + dormant + "/" + resolved,
       "cards (live/total): " + live + "/" + owners.length,
@@ -1421,9 +1491,78 @@ function LivingCharacters(hook, hookText) {
     return "low";
   }
 
-  // A card is meaningful once it carries system pressure or a narrator event.
+  // True for a WORLD EVENT bucket: an event, not a person. Every character path checks
+  // this (never an actor, target, or scene presence). Keyed off `kind`, NOT the display
+  // name, so a character called "The World" could never be mistaken for the event card.
+  function isEventBucket(b) {
+    return !!(b && b.kind === "event");
+  }
+
+  // A card is meaningful once it carries system pressure or a narrator event. A world
+  // event carries its event text instead.
   function cardHasContent(b) {
+    if (isEventBucket(b)) return !!cleanText(b.worldEvent);
     return !!(b && (cleanText(b.pressure) || cleanText(b.event)));
+  }
+
+  function worldEventSignature(text) {
+    return CFG.EVENT_BUCKET_KEY + "||" + cleanText(text).toLowerCase();
+  }
+
+  // Seed a WORLD EVENT: a Life Card owned by the world rather than a person. It takes a
+  // normal card slot (so MAX_ACTIVE_CARDS governs whether a character card can coexist)
+  // and rides the same injection/lifecycle machinery. Returns a seed-shaped object, or
+  // null when no events are configured -- the caller then falls through to characters.
+  function seedWorldEvent() {
+    const cg = ensureState();
+    const list = LC.worldEvents || [];
+    if (!list.length) return null;
+    // Only ONE world event at a time. All events share a single bucket key, so seeding
+    // while one is live would silently overwrite it -- return null instead and let the
+    // round-robin fall through to a character seat.
+    const live = cg.cards[CFG.EVENT_BUCKET_KEY];
+    if (live && cardHasContent(live) && lifeStatusIsActive(live.status)) return null;
+    // Prefer an event that is not still inside the dedup TTL, so the same one does not
+    // repeat back to back; if they are all recent, allow a repeat rather than stall.
+    const unused = list.filter(function(t) { return !isRecentSeed(worldEventSignature(t)); });
+    const text = cleanText(choose(unused.length ? unused : list));
+    if (!text) return null;
+
+    cg.cards[CFG.EVENT_BUCKET_KEY] = {
+      kind: "event",
+      owner: CFG.EVENT_OWNER_LABEL, // display only -- never used for selection
+      worldEvent: text,
+      target: "", pressure: "", momentum: "", event: "",
+      status: "active",
+      reminderCount: 0,
+      createdTurn: cg.turn,
+      eventLog: []
+    };
+
+    cg.recentSeeds.push({ sig: worldEventSignature(text), turn: cg.turn });
+    while (cg.recentSeeds.length > 20) cg.recentSeeds.shift();
+    cg.seedCount = (cg.seedCount || 0) + 1; // an event counts as a produced card
+    cg.lastSeedAttemptTurn = cg.turn;
+    cg.seedSource = "worldEvent";
+    cg.seedCandidates = [];
+    cg.selectedSeed = "WORLD EVENT";
+    cg.seedTargeting = "event";
+    cg.seedPressureSource = "event list";
+    cg.seedReason = "world event seeded (narrator chooses who is involved)";
+    cg.lastRoll = "WORLD EVENT: " + text;
+    return { id: "event-" + cg.turn, turnCreated: cg.turn, kind: "event", worldEvent: text };
+  }
+
+  // Story card for a live world event. Separate from the character-card renderer: no
+  // owner/target/pressure, and the trigger list carries no person's name.
+  function syncWorldEventCard(bucket) {
+    createOrPatchStoryCard(
+      CFG.EVENT_CARD_TITLE,
+      CFG.EVENT_CARD_TYPE,
+      CFG.EVENT_BUCKET_KEY + ",you",
+      "WORLD EVENT: " + cleanText(bucket.worldEvent) + "\nSTATUS: " + (cleanText(bucket.status) || "active"),
+      "A world event in play. The narrator decides who is pulled into it."
+    );
   }
 
   // Materialize a pressure card the moment a Life Card seed fires. The system
@@ -1466,16 +1605,20 @@ function LivingCharacters(hook, hookText) {
   // reseeded later with a brand-new TARGET / PRESSURE / MOMENTUM.
   function makeDormant(bucket) {
     if (!bucket) return;
+    const wasEvent = isEventBucket(bucket);
     bucket.target = "";
     bucket.pressure = "";
     bucket.momentum = "";
     bucket.event = "";
+    if (wasEvent) bucket.worldEvent = ""; // release the event text too
     bucket.status = "dormant";
     bucket.reminderCount = 0;
     // eventLog (HISTORY) is intentionally left untouched.
 
-    // Drop the Story Card; the bucket + HISTORY remain in state as the archive.
-    removeStoryCardByKeys(storyCardIdToken(bucket.owner));
+    // Drop the Story Card; the bucket + HISTORY remain in state as the archive. A world
+    // event's card is keyed by EVENT_BUCKET_KEY, not by an owner token, so it needs its
+    // own lookup or the card would linger after the thread archived.
+    removeStoryCardByKeys(wasEvent ? CFG.EVENT_BUCKET_KEY : storyCardIdToken(bucket.owner));
   }
 
   // Select an (owner -> target) pair from a GIVEN owner pool, honoring scene relevance.
@@ -1562,91 +1705,131 @@ function LivingCharacters(hook, hookText) {
     const p = playerName();
     const poolAll = actorPool();
 
-    // ROUND-ROBIN: alternate which owner TYPE is tried first on each generated card.
-    //   relationship phase -> prefer RULED owners (relationship-steered cards); if none
-    //                         can seed, fall back to unruled (random) owners.
-    //   random phase       -> prefer UNRULED owners (random cards); if none can seed,
-    //                         fall back to ruled (relationship) owners.
-    // The phase advances ONLY when a card is actually created (see the success block),
-    // so produced cards alternate relationship/random/relationship/random whenever both
-    // types are available -- each gets a fair turn. With rules on only one side (or none
-    // at all), every attempt simply falls back to the available side, so behavior
-    // degrades cleanly to today's.
-    const phase = (cg.seedPhase === "random") ? "random" : "relationship";
+    // ROUND-ROBIN with FULL FALLBACK. Each produced card advances one seat in
+    // CFG.SEED_CYCLE (relationship -> event -> random -> repeat), so every kind gets a
+    // fair turn. CRITICALLY: a seat that cannot produce this turn is SKIPPED and the next
+    // seat is tried, wrapping all the way around the cycle.
+    //
+    // This is the fix for the queue stalling: the index used to advance only on SUCCESS,
+    // so a blocked character seat (everyone already holding a card, on cooldown, or the
+    // pair being a recent duplicate) froze the rotation on that seat and events simply
+    // stopped firing. Worse, an EVENTS-ONLY setup (no characters configured) could never
+    // advance off seat 0 and never reached the event seat at all. Now every seat acts as
+    // the fallback for every other seat, so whatever CAN fire, does.
+    const cycle = CFG.SEED_CYCLE;
+    let cycleIdx = (typeof cg.seedCycleIndex === "number" ? cg.seedCycleIndex : 0);
+    cycleIdx = ((cycleIdx % cycle.length) + cycle.length) % cycle.length;
     const ruledPool = poolAll.filter(function(n) { return !!ownerRules(n); });
     const randomPool = poolAll.filter(function(n) { return !ownerRules(n); });
-    const firstPool = (phase === "relationship") ? ruledPool : randomPool;
-    const secondPool = (phase === "relationship") ? randomPool : ruledPool;
+    const tried = [];
+    const dupSeats = []; // seats whose pick was blocked by the dedup TTL (kept for debug)
 
-    let pick = pickSeedPair(firstPool, mode, scene, p);
-    let fellBack = false;
-    if (!pick) { pick = pickSeedPair(secondPool, mode, scene, p); fellBack = !!pick; }
+    for (let step = 0; step < cycle.length; step++) {
+      const idx = (cycleIdx + step) % cycle.length;
+      const seat = cycle[idx];
+      cg.seedPhase = seat; // debug display
+      const seatLabel = "seat=" + seat +
+        (step === 0 ? " (preferred)" : " (fallback after " + tried.join(",") + ")");
+      tried.push(seat);
 
-    if (!pick) {
-      cg.seedSource = "skipped";
+      // ---- EVENT seat ------------------------------------------------------
+      if (seat === "event") {
+        const evSeed = seedWorldEvent();
+        if (evSeed) {
+          cg.seedCycleIndex = (idx + 1) % cycle.length;
+          cg.seedRoundRobin = seatLabel;
+          return evSeed;
+        }
+        continue; // no events configured, or one already live -> try the next seat
+      }
+
+      // ---- CHARACTER seats (relationship / random) -------------------------
+      const pool = (seat === "relationship") ? ruledPool : randomPool;
+      const pick = pickSeedPair(pool, mode, scene, p);
+      if (!pick) continue;
+
+      const actor = pick.actor, target = pick.target, seedSource = pick.seedSource;
+      // Pressure resolution: exact Owner > Target rule list, else the global pool.
+      const rule = ruleFor(actor, target);
+      const rulePressures = (rule && rule.pressures && rule.pressures.length) ? rule.pressures : null;
+      const pressure = choose(rulePressures || LC.pressures) || "tension";
+      const intensity = weightedChoice([["small", 65], ["medium", 28], ["major", 7]]);
+
+      const seed = {
+        id: "seed-" + cg.turn + "-" + randomInt(100000),
+        turnCreated: cg.turn,
+        actor: actor,
+        target: target,
+        category: pressure,
+        intensity: intensity,
+        pressure: pressure,
+        momentum: momentumForIntensity(intensity),
+        reason: cardReason(actor, target, pressure)
+      };
+      // A duplicate signature must not stall the queue either -- try the next seat.
+      if (isRecentSeed(seedSignature(seed))) {
+        dupSeats.push(seat + ":" + actor + "->" + target);
+        cg.lastRoll = "attempt: duplicate, skipped (signature expires after " + CFG.SEED_DEDUP_TTL_TURNS + " turns)";
+        continue;
+      }
+
+      const ownerIn = actor !== p && scene.indexOf(actor) !== -1;
+      const tgtIn = target !== p && scene.indexOf(target) !== -1;
+      cg.seedSource = seedSource;
       cg.seedCandidates = poolAll.slice(0, 12);
-      cg.selectedSeed = "(none)";
-      cg.seedRoundRobin = "phase=" + phase + " -> no pair from either pool";
-      cg.seedReason = poolAll.length
-        ? (mode === "strict"
-            ? "strict: no scene-eligible pair from either round-robin pool (phase " + phase + ")"
-            : "no eligible owner/target pair, both round-robin pools (phase " + phase + ")")
-        : "no eligible owners";
-      cg.lastRoll = "attempt: no eligible pair (phase " + phase + ")";
-      return null;
+      cg.selectedSeed = actor + " -> " + target;
+      cg.seedRoundRobin = seatLabel;
+      cg.seedReason = (seedSource === "sceneActors")
+        ? (ownerIn && tgtIn ? "owner & target in scene" : ownerIn ? "owner in scene" : "target in scene")
+        : "off-scene seed allowed (mode=" + mode + ")";
+      cg.seedTargeting = ownerRules(actor) ? "rule" : "random";
+      cg.seedPressureSource = rulePressures ? "rule" : "global";
+      cg.seedRule = rule
+        ? "rule: " + actor + " > " + target + " | pressures: " + (rulePressures ? rulePressures.join(", ") : "global pool")
+        : "";
+      if (cg.seedRule) cg.seedReason += " | " + cg.seedRule;
+
+      cg.pendingSeed = seed;
+      cg.lastSeedAttemptTurn = cg.turn;            // start the next interval only on SUCCESS
+      cg.seedCycleIndex = (idx + 1) % cycle.length; // advance past the seat that produced
+      cg.lastRoll = "LIFE CARD " + actor + " -> " + target + " [" + pressure + "/" + intensity + "]";
+      rememberSeed(seed);
+      bootstrapSeedCard(seed);
+      return seed;
     }
 
-    const actor = pick.actor, target = pick.target, seedSource = pick.seedSource;
-
-    cg.seedSource = seedSource;
+    // Nothing in the entire cycle could produce a card this turn.
+    cg.seedSource = "skipped";
     cg.seedCandidates = poolAll.slice(0, 12);
-    cg.selectedSeed = actor + " -> " + target;
-    cg.seedRoundRobin = "phase=" + phase +
-      (fellBack ? " -> fell back to " + (phase === "relationship" ? "random" : "relationship") : " (preferred)");
-    const ownerIn = actor !== p && scene.indexOf(actor) !== -1;
-    const tgtIn = target !== p && scene.indexOf(target) !== -1;
-    cg.seedReason = (seedSource === "sceneActors")
-      ? (ownerIn && tgtIn ? "owner & target in scene" : ownerIn ? "owner in scene" : "target in scene")
-      : "off-scene seed allowed (mode=" + mode + ")";
-    // Pressure resolution: exact Owner > Target rule list, else the global pool.
-    const rule = ruleFor(actor, target);
-    const rulePressures = (rule && rule.pressures && rule.pressures.length) ? rule.pressures : null;
-    const pressure = choose(rulePressures || LC.pressures) || "tension";
-    cg.seedTargeting = ownerRules(actor) ? "rule" : "random";
-    cg.seedPressureSource = rulePressures ? "rule" : "global";
-    cg.seedRule = rule
-      ? "rule: " + actor + " > " + target + " | pressures: " + (rulePressures ? rulePressures.join(", ") : "global pool")
-      : "";
-    if (cg.seedRule) cg.seedReason += " | " + cg.seedRule;
-    const intensity = weightedChoice([["small", 65], ["medium", 28], ["major", 7]]);
-
-    let seed = {
-      id: "seed-" + cg.turn + "-" + randomInt(100000),
-      turnCreated: cg.turn,
-      actor: actor,
-      target: target,
-      category: pressure,
-      intensity: intensity,
-      pressure: pressure,
-      momentum: momentumForIntensity(intensity),
-      reason: cardReason(actor, target, pressure)
-    };
-
-    if (isRecentSeed(seedSignature(seed))) { cg.lastRoll = "attempt: duplicate, skipped (signature expires after " + CFG.SEED_DEDUP_TTL_TURNS + " turns)"; return null; }
-    cg.pendingSeed = seed;
-    cg.lastSeedAttemptTurn = cg.turn; // start the next interval only on SUCCESS
-    // Advance the round-robin phase ONLY here, on a real card creation (not on skips or
-    // dedup blocks), so the preference alternates once per produced card.
-    cg.seedPhase = (phase === "relationship") ? "random" : "relationship";
-    cg.lastRoll = "LIFE CARD " + actor + " -> " + target + " [" + pressure + "/" + intensity + "]";
-    rememberSeed(seed);
-    bootstrapSeedCard(seed);
-    return seed;
+    cg.selectedSeed = "(none)";
+    cg.seedRoundRobin = "no seat produced (tried " + tried.join(",") + ")";
+    cg.seedReason = poolAll.length
+      ? (mode === "strict"
+          ? "strict: no scene-eligible pair, and no event available"
+          : "no eligible owner/target pair, and no event available")
+      : ((LC.worldEvents && LC.worldEvents.length)
+          ? "no eligible owners; an event is already live or none available"
+          : "no eligible owners");
+    // Keep the duplicate reason visible -- otherwise a dedup block would be masked by the
+    // generic "no seat produced" message and the debug trail would lose why nothing fired.
+    cg.lastRoll = dupSeats.length
+      ? ("attempt: duplicate, skipped (" + dupSeats.join("; ") + "; signature expires after " +
+         CFG.SEED_DEDUP_TTL_TURNS + " turns)")
+      : ("attempt: no card from any seat (" + tried.join(",") + ")");
+    return null;
   }
 
   function buildContextDirective(text) {
     const seed = maybeCreateSeed(text);
     if (!seed) return "";
+    // A world event names nobody -- the narrator picks who gets pulled in.
+    if (seed.kind === "event") {
+      return "\n\n<LC_PRIVATE>\n" +
+        "### Stop the story. Use this now.\n" +
+        "A world event is happening RIGHT NOW: " + seed.worldEvent + "\n" +
+        "Bring it into the scene immediately and make it the centre of what happens next. YOU decide which characters are pulled into it. Do not mention this note.\n" +
+        "</LC_PRIVATE>";
+    }
     // Compact: a new pressure formed. Let it color behavior; the narrator MAY record
     // a concrete development with a hidden memory block (never auto-control the player).
     return "\n\n<LC_PRIVATE>\n" +
@@ -1677,6 +1860,8 @@ function LivingCharacters(hook, hookText) {
   // (The protagonist is always "present", so target-is-protagonist alone does not
   // count; the NPC owner must be present.)
   function isSceneRelevant(b, scene) {
+    // A world event is not a person -- it is always in play, whatever the scene mode.
+    if (isEventBucket(b)) return true;
     const p = playerName();
     const owner = cleanName(b.owner);
     const tgt = cleanName(b.target);
@@ -1727,6 +1912,11 @@ function LivingCharacters(hook, hookText) {
     // Render each card as a distinct multi-line block (more salient than one line).
     const renderEntry = function(c) {
       const b = c.bucket;
+      // World event: no owner/target/pressure -- just the event and who-decides framing.
+      if (isEventBucket(b)) {
+        return "WORLD EVENT (in play now -- YOU decide which characters are pulled into it):\n" +
+          cleanText(b.worldEvent);
+      }
       let e = "OWNER: " + c.owner +
         "\nTARGET: " + (cleanText(b.target) || "someone") +
         "\nPRESSURE: " + (cleanText(b.pressure) || "unspoken pressure") +
@@ -1820,6 +2010,7 @@ function LivingCharacters(hook, hookText) {
     for (let i = 0; i < owners.length; i++) {
       const b = cg.cards[owners[i]];
       if (!cardHasContent(b)) continue;
+      if (isEventBucket(b)) continue; // events take no narrator write-back
       const st = cleanText(b.status).toLowerCase();
       if (st === "resolved" || st === "dormant") continue;
       return true;
@@ -2081,7 +2272,7 @@ function LivingCharacters(hook, hookText) {
   // No XML, no LC_MEMORY, no write-back blocks, no detectors. Runs independently
   // of Life Cards (a character can have thoughts with no active Life Card).
   // ==========================================================================
-  const THOUGHT_KEYS = ["thoughts_enabled", "thought_characters", "thought_interval", "thought_formation_chance", "thought_scene_mode"];
+  const THOUGHT_KEYS = ["thoughts_enabled", "thought_characters", "thought_interval", "thought_formation_chance", "thought_scene_mode", "thought_order"];
 
   // THOUGHT CARDS CONFIG
   // The editable Story Card that controls the separate Thought Card system. It is
@@ -2108,7 +2299,11 @@ function LivingCharacters(hook, hookText) {
       "50",
       "",
       "THOUGHT_SCENE_MODE:",
-      "scene"
+      "scene",
+      "",
+      "THOUGHT_ORDER:",
+      "ascending",
+      "( ascending = 1,2,3,4  |  descending = 4,3,2,1 )"
     ].join("\n");
   }
 
@@ -2139,7 +2334,11 @@ function LivingCharacters(hook, hookText) {
     // Card targeting, pressure selection, momentum, or story logic.
     let sceneMode = String(configFirst(sections, "thought_scene_mode", CFG.THOUGHT_SCENE_MODE_DEFAULT)).toLowerCase().replace(/\s+/g, "");
     if (["scene", "recent", "roster"].indexOf(sceneMode) === -1) sceneMode = CFG.THOUGHT_SCENE_MODE_DEFAULT;
-    return { enabled: enabled, characters: characters, interval: interval, chance: chance, maxThoughts: maxThoughts, sceneMode: sceneMode };
+    // THOUGHT_ORDER: ascending (default) | descending. Display only. "desc"/"newest"/"new"
+    // are accepted as friendly aliases for descending; anything else -> ascending.
+    let order = String(configFirst(sections, "thought_order", CFG.THOUGHT_ORDER_DEFAULT)).toLowerCase().replace(/\s+/g, "");
+    order = (["descending", "desc", "newest", "new", "reverse"].indexOf(order) !== -1) ? "descending" : "ascending";
+    return { enabled: enabled, characters: characters, interval: interval, chance: chance, maxThoughts: maxThoughts, sceneMode: sceneMode, order: order };
   }
 
   // Separate state slice -- never touches chaosGoblinV2 (Life Card state).
@@ -2248,8 +2447,15 @@ function LivingCharacters(hook, hookText) {
       ts.byChar[name] = list;
     }
 
-    const entry = entryFit.kept.length ? renderThoughtLines(entryFit.kept) : "(no thoughts yet)";
-    const notes = notesFit.kept.length ? renderThoughtLines(notesFit.kept) : "";
+    // DISPLAY ORDER (storage is always oldest->newest, so overflow/trim above is unaffected).
+    // Descending reverses each field's kept items so the newest number sits at the top:
+    //   ascending  Entry [3,4,5] Notes [1,2]  ->  3,4,5 / 1,2
+    //   descending Entry [5,4,3] Notes [2,1]  ->  5,4,3 / 2,1
+    const desc = TC && TC.order === "descending";
+    const entryItems = desc ? entryFit.kept.slice().reverse() : entryFit.kept;
+    const notesItems = desc ? notesFit.kept.slice().reverse() : notesFit.kept;
+    const entry = entryItems.length ? renderThoughtLines(entryItems) : "(no thoughts yet)";
+    const notes = notesItems.length ? renderThoughtLines(notesItems) : "";
 
     // On a NEW thought (marked), DELETE the existing card first so the create below makes
     // a BRAND-NEW card. AID's card menu is sorted by card CREATION order (newest first)
@@ -2610,6 +2816,7 @@ function LivingCharacters(hook, hookText) {
     rosterCharacters: [],
     rosterSource: "none",
     pressures: CFG.DEFAULT_PRESSURES.slice(),
+    worldEvents: [],
     activityOff: false,
     activityTurns: CFG.DEFAULT_ACTIVITY_TURNS,
     legacyActivityUsed: false,

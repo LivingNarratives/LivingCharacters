@@ -1,4 +1,4 @@
-![Living Characters Thought Cards Update](./ThoughtCardsUpdate.png)
+![Living Characters Random Events Update](./ThoughtCardsUpdate.png)
 
 <div align="center">
 
@@ -26,6 +26,12 @@ Want to see it in action right away?
 ## ✨ What It Does
 
 Living Characters adds two lightweight systems to AI Dungeon:
+
+### 🌍 World Events
+
+World Events are optional, autonomous developments that affect the wider story world rather than beginning with a specific character. Add them under the `WORLD_EVENTS:` heading in the **Events Configuration** section of the **LIVING CHARACTERS CONFIG** card. The narrator decides which characters are pulled into an event, allowing unexpected developments to emerge without player prompting.
+
+World Events use the same active-card capacity as Life Cards and can influence the characters and social threads already in play. See [Configuration](./configuration.md#world-events) for setup options and examples.
 
 ### 🌱 Life Cards
 
