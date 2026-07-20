@@ -24,6 +24,7 @@ Open that existing card to edit:
 - `PROTAGONIST_INVOLVEMENT`
 - `CHARACTERS` / roster
 - `PRESSURES`
+- `WORLD_EVENTS`
 - `LIFE_CARD_INTERVAL`
 - `TARGET_COOLDOWN`
 - `MAX_ACTIVE_CARDS`
@@ -53,6 +54,10 @@ jealousy
 rivalry
 trust
 curiosity
+
+WORLD_EVENTS:
+A citywide blackout begins
+A mysterious package arrives with no return address
 
 LIFE_CARD_INTERVAL: 15
 
@@ -131,6 +136,40 @@ rivalry
 trust
 curiosity
 ```
+
+---
+
+## World Events
+
+World Events are optional, autonomous developments that can change the wider story world without starting from a particular character. They can introduce unexpected story developments on their own, while the narrator decides which characters become involved and how the event unfolds.
+
+Configure them under the `WORLD_EVENTS:` heading in the **Events Configuration** section of the existing **LIVING CHARACTERS CONFIG** Story Card.
+
+### Available options
+
+- Add one event per line beneath `WORLD_EVENTS:`.
+- Write events in plain language; each line can describe any development appropriate for your story.
+- Lines in parentheses are comments and are ignored.
+- Leave the section empty to disable World Events.
+
+**Example:**
+```
+WORLD_EVENTS:
+A citywide blackout begins
+A mysterious package arrives with no return address
+A surprise festival fills the town square
+```
+
+**Western example:**
+```
+WORLD_EVENTS:
+A gun duel erupts in the street
+A brawl breaks out in the saloon
+```
+
+World Events interact with Life Cards by using the same active-card system. An active event takes one of the slots set by `MAX_ACTIVE_CARDS`, just like a Life Card. For example, with `MAX_ACTIVE_CARDS: 1`, a World Event is the only active card while it is in play; with `MAX_ACTIVE_CARDS: 2`, it can coexist with one character Life Card. Only one World Event can be active at a time.
+
+World Events participate in the autonomous Life Card scheduling cycle. If no events are configured, event opportunities automatically fall through to the normal relationship or random Life Card pools, so existing Life Card behavior continues without interruption.
 
 ---
 
