@@ -198,7 +198,7 @@ fight,yell,argue
 
 Relationship rules are only read beneath `Relationships:`. Anything above that heading is documentation/examples and is ignored.
 
-Living Characters alternates between relationship owner selection and random owner selection. If one pool has no eligible owners, it automatically falls back to the other.
+Living Characters uses a fixed round-robin rotation across Relationship Life Cards, Random Life Cards, and World Events. If the scheduled type is disabled or cannot generate a card because of cooldowns, no eligible characters, active card limits, or another eligibility condition, it automatically continues to the next available type instead of stalling.
 
 ---
 
