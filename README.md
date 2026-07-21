@@ -1,4 +1,4 @@
-![Living Characters Random Events Update](./ThoughtCardsUpdate.png)
+![Living Characters World Events Update](./WorldEventsUpdate.png)
 
 <div align="center">
 
