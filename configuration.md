@@ -346,9 +346,30 @@ THOUGHT_INTERVAL: 5
 THOUGHT_FORMATION_CHANCE: 50
 
 THOUGHT_SCENE_MODE: scene
+
+THOUGHT_ORDER: ascending
 ```
 
 Turn `THOUGHTS_ENABLED` to `true` only when you want Thought Cards active.
+
+---
+
+## THOUGHT_ORDER
+
+Controls the display order of numbered thoughts on each Thought Card.
+
+**Default:**
+`THOUGHT_ORDER: ascending`
+
+**Options:**
+
+- `ascending` = `1,2,3,4` (oldest thought first)
+- `descending` = `4,3,2,1` (newest thought first)
+
+**Example:**
+`THOUGHT_ORDER: descending`
+
+This setting changes display order only. It does not change permanent thought numbers, storage order, Entry-to-Notes rollover, trimming, or any Life Card behavior.
 
 ---
 
