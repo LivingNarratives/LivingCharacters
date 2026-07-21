@@ -302,18 +302,22 @@ Unknown character names are handled safely. Relationship-only names can be used 
 
 ## Round Robin Scheduling
 
-Living Characters alternates owner selection between two systems:
+Living Characters uses a fixed round-robin rotation to balance enabled Life Card types:
 
-- Relationship owner selection
-- Random owner selection
+```text
+Relationships
+→ Event
+→ Random
+→ Relationships
+→ Random
+→ Relationships
+→ Event
+→ Repeat
+```
 
-On a relationship phase, Living Characters tries relationship owners first. If no relationship owner is eligible, it falls back to random owners.
+Every step has graceful fallback behavior. If the scheduled type is disabled or cannot generate a card because of cooldowns, no eligible characters, active card limits, or another eligibility condition, the scheduler automatically continues to the next available type instead of stalling or waiting.
 
-On a random phase, Living Characters tries random owners first. If no random owner is eligible, it falls back to relationship owners.
-
-The phase only advances after a Life Card is successfully created. Skipped turns, cooldowns, active card limits, or failed attempts do not advance the schedule.
-
-This gives authored relationship cards and randomized Life Cards equal opportunities while still allowing graceful fallback when one pool has no eligible owners.
+This preserves the intended cadence of relationship-driven cards, random cards, and World Events while keeping the simulation moving. The scheduler works with any combination of enabled systems, including Relationship-only, Random-only, Event-only, or any mix of the three.
 
 
 ---

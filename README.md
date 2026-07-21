@@ -37,13 +37,32 @@ World Events use the same active-card capacity as Life Cards and can influence t
 
 Life Cards create autonomous social threads between characters so your story world stops revolving only around the protagonist.
 
-Life Cards can run from the general cast or from optional relationship targeting in the **LIVING CHARACTERS RELATIONSHIPS** card. Rules use simple syntax like `Luke>Larry=fight,yell,argue`, spaces around `>` and `=` are optional, and omitted or empty pressure lists use the global default pressure list. Living Characters alternates between relationship owner selection and random owner selection with fallback when one pool has no eligible owners.
+Life Cards can run from the general cast or from optional relationship targeting in the **LIVING CHARACTERS RELATIONSHIPS** card. Rules use simple syntax like `Luke>Larry=fight,yell,argue`, spaces around `>` and `=` are optional, and omitted or empty pressure lists use the global default pressure list. Living Characters uses a round-robin scheduler with graceful fallbacks to balance Relationship Life Cards, Random Life Cards, and World Events.
 
 | Without Living Characters       | With Life Cards                             |
 | ------------------------------- | ------------------------------------------- |
 | Everyone waits for the player.  | NPCs develop their own drama.               |
 | Relationships reset constantly. | Life Cards preserve ongoing social threads. |
 | The world feels reactive.       | The world feels alive.                      |
+
+### Round Robin Scheduler
+
+Living Characters uses a fixed round-robin rotation to balance enabled Life Card types:
+
+```text
+Relationships
+→ Event
+→ Random
+→ Relationships
+→ Random
+→ Relationships
+→ Event
+→ Repeat
+```
+
+Every step has graceful fallback behavior. If the scheduled type is disabled or cannot generate a card because of cooldowns, no eligible characters, active card limits, or another eligibility condition, the scheduler automatically continues to the next available type instead of stalling or waiting.
+
+This preserves the intended cadence while keeping the simulation moving. It works with any combination of enabled systems, including Relationship-only, Random-only, Event-only, or any mix of the three.
 
 ### 💭 Thought Cards
 
